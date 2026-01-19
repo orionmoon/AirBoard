@@ -6,6 +6,7 @@ import (
 	"airboard/models"
 
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 )
 
 // RequireGroupAdmin vérifie que l'utilisateur est admin d'au moins un groupe
@@ -115,7 +116,7 @@ func GetManagedGroupIDs(c *gin.Context) []uint {
 // CanManageAppGroup vérifie si un utilisateur peut gérer un AppGroup spécifique
 // Un utilisateur peut administrer un AppGroup uniquement si :
 // - L'AppGroup est privé (IsPrivate = true)
-// - ET l'OwnerGroupID correspond à l'un des groupes qu'il administre
+// - ET l'AppGroup est lié à l'un des groupes qu'il administre (via group_app_groups)
 // Les AppGroups publics (IsPrivate = false) ne peuvent être administrés que par l'admin global
 func CanManageAppGroupWithDB(c *gin.Context, appGroupID uint, db interface{}) bool {
 	role := c.GetString("role")
@@ -128,44 +129,19 @@ func CanManageAppGroupWithDB(c *gin.Context, appGroupID uint, db interface{}) bo
 		return false
 	}
 
-	// Récupérer l'AppGroup pour vérifier IsPrivate et OwnerGroupID
-	type AppGroupCheck struct {
-		IsPrivate    bool
-		OwnerGroupID *uint
-	}
-	var appGroup AppGroupCheck
-
-	if dbConn, ok := db.(interface {
-		Raw(string, ...interface{}) interface{ Scan(interface{}) error }
-	}); ok {
-		err := dbConn.Raw(`
-			SELECT is_private, owner_group_id
-			FROM app_groups
-			WHERE id = ? AND deleted_at IS NULL
-		`, appGroupID).Scan(&appGroup)
-
-		if err != nil {
-			return false
-		}
-	} else {
+	// Cast vers *gorm.DB
+	gormDB, ok := db.(*gorm.DB)
+	if !ok {
 		return false
 	}
 
-	// Vérifier si l'AppGroup est privé
-	if !appGroup.IsPrivate {
-		return false // Seul l'admin global peut gérer les AppGroups publics
-	}
+	// Vérifier si l'AppGroup est privé et lié à un des groupes administrés
+	var count int64
+	gormDB.Table("app_groups").
+		Joins("JOIN group_app_groups ON group_app_groups.app_group_id = app_groups.id").
+		Where("app_groups.id = ? AND app_groups.is_private = ? AND group_app_groups.group_id IN ? AND app_groups.deleted_at IS NULL",
+			appGroupID, true, managedGroupIDs).
+		Count(&count)
 
-	// Vérifier si l'OwnerGroupID correspond à l'un des groupes administrés
-	if appGroup.OwnerGroupID == nil {
-		return false // AppGroup privé sans propriétaire ne peut pas être administré
-	}
-
-	for _, groupID := range managedGroupIDs {
-		if *appGroup.OwnerGroupID == groupID {
-			return true
-		}
-	}
-
-	return false
+	return count > 0
 }
