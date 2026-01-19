@@ -120,11 +120,20 @@ const sanitizedContent = computed(() => {
 }
 
 .tiptap-content ul {
-  @apply list-disc list-inside mb-4 space-y-2;
+  @apply list-disc ml-6 mb-4 space-y-1;
 }
 
 .tiptap-content ol {
-  @apply list-decimal list-inside mb-4 space-y-2;
+  @apply list-decimal ml-6 mb-4 space-y-1;
+}
+
+.tiptap-content li {
+  @apply ml-2;
+}
+
+.tiptap-content ul ul,
+.tiptap-content ol ol {
+  @apply ml-6 mb-0 mt-1;
 }
 
 .tiptap-content a {

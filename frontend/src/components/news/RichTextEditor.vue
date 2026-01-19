@@ -530,6 +530,24 @@ onBeforeUnmount(() => {
   @apply text-gray-400 dark:text-gray-500 float-left h-0 pointer-events-none;
 }
 
+/* List styling */
+.editor-content :deep(.ProseMirror ul) {
+  @apply list-disc ml-6 mb-4 space-y-1;
+}
+
+.editor-content :deep(.ProseMirror ol) {
+  @apply list-decimal ml-6 mb-4 space-y-1;
+}
+
+.editor-content :deep(.ProseMirror li) {
+  @apply ml-2;
+}
+
+.editor-content :deep(.ProseMirror ul ul),
+.editor-content :deep(.ProseMirror ol ol) {
+  @apply ml-6 mb-0 mt-1;
+}
+
 /* Code block styling */
 .editor-content :deep(.ProseMirror pre) {
   @apply bg-gray-900 text-gray-100 p-4 rounded-lg overflow-x-auto;
