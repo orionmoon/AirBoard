@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -346,6 +347,13 @@ func (h *OAuthHandler) OAuthCallback(c *gin.Context) {
 		return
 	}
 	log.Printf("[OAuth] ✅ User found/created: %s (%s)", user.Username, user.Email)
+
+	// Mettre à jour la date de dernière connexion
+	now := time.Now()
+	if err := h.db.Model(&user).Update("last_login", now).Error; err != nil {
+		log.Printf("[OAuth] Erreur lors de la mise à jour de la dernière connexion: %v", err)
+		// Ne pas bloquer la connexion pour cette erreur
+	}
 
 	// Générer les tokens JWT
 	jwtToken, err := h.authMiddleware.GenerateToken(&user)
