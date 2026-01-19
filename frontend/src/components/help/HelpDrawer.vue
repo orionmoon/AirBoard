@@ -384,19 +384,40 @@ async function selectPage(item) {
     if (response.ok) {
       let content = await response.text()
 
-      // Remove frontmatter if present
-      content = content.replace(/^---[\s\S]*?---\n/, '')
+      // Vérifier que le contenu ne contient pas de HTML (page d'erreur)
+      // Rejeter si on trouve des balises HTML typiques d'une page d'erreur
+      const htmlPatterns = [
+        /^\s*<!DOCTYPE/i,
+        /^\s*<html/i,
+        /<link\s+rel=["']preconnect["']/i,
+        /<script\s+type=["']module["']/i,
+        /<link\s+rel=["']modulepreload["']/i
+      ]
 
-      // Remove VitePress-specific elements
-      content = content.replace(/<div class="role-badge[^"]*">[^<]*<\/div>/g, '')
+      const isHtmlContent = htmlPatterns.some(pattern => pattern.test(content))
 
-      // Cache the content
-      contentCache.value[cacheKey] = content
+      if (isHtmlContent) {
+        console.warn(`HTML content detected instead of markdown for ${item.file}`)
+        selectedPage.value = {
+          ...item,
+          content: t('help.contentNotAvailable'),
+          section: currentGuide.value?.sections.find(s => s.items.some(i => i.id === item.id))?.title
+        }
+      } else {
+        // Remove frontmatter if present
+        content = content.replace(/^---[\s\S]*?---\n/, '')
 
-      selectedPage.value = {
-        ...item,
-        content,
-        section: currentGuide.value?.sections.find(s => s.items.some(i => i.id === item.id))?.title
+        // Remove VitePress-specific elements
+        content = content.replace(/<div class="role-badge[^"]*">[^<]*<\/div>/g, '')
+
+        // Cache the content
+        contentCache.value[cacheKey] = content
+
+        selectedPage.value = {
+          ...item,
+          content,
+          section: currentGuide.value?.sections.find(s => s.items.some(i => i.id === item.id))?.title
+        }
       }
     } else {
       // Fallback content
