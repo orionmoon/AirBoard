@@ -1138,6 +1138,15 @@
     "upload_error": "خطأ في رفع الملف",
     "update_error": "خطأ في تحديث الوسائط",
     "delete_error": "خطأ في حذف الوسائط"
+  },
+  "help": {
+    "sections": {
+      "installation": "التثبيت والتكوين"
+    },
+    "pages": {
+      "installation": "التثبيت",
+      "configuration": "التكوين"
+    }
   }
 }
 

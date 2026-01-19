@@ -1139,5 +1139,14 @@
     "upload_error": "Error al subir el archivo",
     "update_error": "Error al actualizar el medio",
     "delete_error": "Error al eliminar el medio"
+  },
+  "help": {
+    "sections": {
+      "installation": "Instalación y Configuración"
+    },
+    "pages": {
+      "installation": "Instalación",
+      "configuration": "Configuración"
+    }
   }
 }

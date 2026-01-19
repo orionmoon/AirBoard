@@ -1376,7 +1376,8 @@
       "management": "Gestion",
       "applications": "Applications",
       "content": "Contenu",
-      "system": "Système"
+      "system": "Système",
+      "installation": "Installation & Configuration"
     },
     "pages": {
       "introduction": "Introduction",
@@ -1404,7 +1405,9 @@
       "pollsManagement": "Gestion des sondages",
       "announcements": "Annonces",
       "analytics": "Analytiques",
-      "settings": "Paramètres"
+      "settings": "Paramètres",
+      "installation": "Installation",
+      "configuration": "Configuration"
     }
   },
   "media": {

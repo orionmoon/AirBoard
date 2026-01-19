@@ -203,8 +203,7 @@ const allGuides = computed(() => [
         id: 'getting-started',
         title: t('help.sections.gettingStarted'),
         items: [
-          { id: 'introduction', title: t('help.pages.introduction'), file: 'getting-started/index' },
-          { id: 'first-steps', title: t('help.pages.firstSteps'), file: 'getting-started/first-steps' }
+          { id: 'introduction', title: t('help.pages.introduction'), file: 'user-guide/index' }
         ]
       },
       {
@@ -278,6 +277,15 @@ const allGuides = computed(() => [
     icon: 'mdi:shield-crown',
     roles: ['admin'], // Only for admins
     sections: [
+      {
+        id: 'admin-installation',
+        title: t('help.sections.installation'),
+        items: [
+          { id: 'installation', title: t('help.pages.installation'), file: 'getting-started/index' },
+          { id: 'configuration', title: t('help.pages.configuration'), file: 'getting-started/configuration' },
+          { id: 'first-steps', title: t('help.pages.firstSteps'), file: 'getting-started/first-steps' }
+        ]
+      },
       {
         id: 'admin-basics',
         title: t('help.sections.basics'),
