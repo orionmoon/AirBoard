@@ -220,8 +220,11 @@
 
 <script setup>
 import { ref, reactive, computed, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { Icon } from '@iconify/vue'
 import IconInput from '@/components/ui/IconInput.vue'
+
+const { t } = useI18n()
 
 const props = defineProps({
   show: {
@@ -309,11 +312,11 @@ const validateForm = () => {
   errors.value = {}
 
   if (!form.name.trim()) {
-    errors.value.name = $t('groupAdmin.appGroupModal.errors.nameRequired')
+    errors.value.name = t('groupAdmin.appGroupModal.errors.nameRequired')
   }
 
   if (!form.owner_group_id) {
-    errors.value.owner_group_id = $t('groupAdmin.appGroupModal.errors.ownerGroupRequired')
+    errors.value.owner_group_id = t('groupAdmin.appGroupModal.errors.ownerGroupRequired')
   }
 
   return Object.keys(errors.value).length === 0

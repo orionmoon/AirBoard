@@ -170,11 +170,13 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { Icon } from '@iconify/vue'
 import { groupAdminService } from '@/services/api'
 import { useAppStore } from '@/stores/app'
 import GroupAdminAppGroupModal from '@/components/group-admin/AppGroupModal.vue'
 
+const { t } = useI18n()
 const appStore = useAppStore()
 
 // State
@@ -294,7 +296,7 @@ const deleteGroup = async () => {
   } catch (error) {
     console.error('Error deleting app group:', error)
     // Could show a toast notification here instead of alert
-    appStore.showError($t('groupAdmin.appGroupsManagement.deleteError'))
+    appStore.showError(t('groupAdmin.appGroupsManagement.deleteError'))
   } finally {
     deleteLoading.value = false
   }
