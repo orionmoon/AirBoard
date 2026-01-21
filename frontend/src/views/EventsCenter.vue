@@ -39,17 +39,6 @@
               <span class="hidden xs:inline text-sm">{{ $t('agenda.list') }}</span>
             </button>
           </div>
-          
-          <!-- Add Event Button -->
-          <button
-            v-if="canCreateEvent"
-            @click="createEvent"
-            class="px-4 py-2 bg-primary-500 hover:bg-primary-600 text-white font-medium rounded-lg transition-colors flex items-center gap-2 shadow-sm hover:shadow-md"
-          >
-            <Icon icon="mdi:plus" class="h-4 w-4" />
-            <span class="hidden sm:inline text-sm">{{ $t('agenda.addEvent') }}</span>
-            <span class="sm:hidden text-sm">{{ $t('agenda.add') }}</span>
-          </button>
         </div>
       </div>
     </div>
@@ -231,7 +220,6 @@ const showOnlyHolidays = ref(false) // Filtre jours fériés
 // Computed
 const events = computed(() => eventsStore.events)
 const categories = computed(() => eventsStore.categories)
-const canCreateEvent = computed(() => authStore.canManageContent)
 
 // Methods
 const loadData = async () => {
@@ -380,10 +368,6 @@ const handleEventUpdated = (updatedEvent) => {
   // Recharger les événements quand un événement est mis à jour via le modal
   loadData()
   selectedEvent.value = null
-}
-
-const createEvent = () => {
-  router.push('/admin/events/new')
 }
 
 // Utility function to extract text from Tiptap JSON format

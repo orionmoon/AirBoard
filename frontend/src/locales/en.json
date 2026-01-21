@@ -419,6 +419,7 @@
     "myAppGroups": "My App Groups",
     "myApplications": "My Applications",
     "myPolls": "My Polls",
+    "events": "Events",
     "groupNews": "Group News",
     "yourGroups": "Your Groups",
     "yourGroupsSubtitle": "Groups you administrate",
@@ -721,6 +722,135 @@
         "description": "Create your first poll for your groups",
         "createButton": "Create a poll"
       }
+    },
+    "eventsManagement": {
+      "title": "Group Events",
+      "subtitle": "Manage events for your groups",
+      "newEvent": "New Event",
+      "infoTitle": "Group events management",
+      "infoDescription": "As a Group Admin, you can create events for your managed groups. Public events will be visible to everyone, while targeted events will only be visible to members of the selected groups.",
+      "searchPlaceholder": "Search events...",
+      "categoryFilter": {
+        "all": "All categories"
+      },
+      "statusFilter": {
+        "all": "All statuses",
+        "published": "Published",
+        "draft": "Draft"
+      },
+      "typeFilter": {
+        "all": "All types",
+        "recurring": "Recurring",
+        "allDay": "All day",
+        "upcoming": "Upcoming",
+        "past": "Past"
+      },
+      "status": {
+        "published": "Published",
+        "draft": "Draft"
+      },
+      "priority": {
+        "urgent": "Urgent",
+        "important": "Important",
+        "normal": "Normal"
+      },
+      "indicators": {
+        "recurring": "Recurring event",
+        "allDay": "All day"
+      },
+      "author": {
+        "unknown": "Unknown"
+      },
+      "visibility": {
+        "public": "Public"
+      },
+      "actions": {
+        "edit": "Edit",
+        "delete": "Delete",
+        "publish": "Publish",
+        "unpublish": "Unpublish"
+      },
+      "pagination": {
+        "page": "Page {page} of {pages}"
+      },
+      "empty": {
+        "title": "No events",
+        "noResults": "No events match your criteria.",
+        "createFirst": "Create your first event for your groups.",
+        "createButton": "Create an event"
+      },
+      "deleteConfirm": {
+        "title": "Delete event",
+        "message": "Are you sure you want to delete \"{title}\"? This action is irreversible."
+      },
+      "loadError": "Error loading events",
+      "updateError": "Error updating event",
+      "deleteError": "Error deleting event",
+      "deleteSuccess": "Event deleted successfully",
+      "publishedSuccess": "Event published successfully",
+      "unpublishedSuccess": "Event unpublished successfully"
+    },
+    "eventEditor": {
+      "title": {
+        "new": "New Group Event",
+        "edit": "Edit Event"
+      },
+      "subtitle": {
+        "new": "Create a new event for your groups",
+        "edit": "Edit your group event"
+      },
+      "backToList": "Back to list",
+      "titleLabel": "Title",
+      "titlePlaceholder": "Enter a title for your event...",
+      "descriptionLabel": "Description",
+      "descriptionPlaceholder": "Describe your event...",
+      "dateTime": "Date and time",
+      "startDate": "Start date",
+      "endDate": "End date",
+      "allDay": "All day",
+      "allDayHelp": "Event lasts all day, without specific time",
+      "location": "Location",
+      "locationPlaceholder": "Meeting room, address, videoconference link...",
+      "recurrence": "Recurrence",
+      "isRecurring": "Recurring event",
+      "recurrenceType": "Recurrence type",
+      "recurrenceTypes": {
+        "daily": "Daily",
+        "weekly": "Weekly",
+        "monthly": "Monthly",
+        "yearly": "Yearly"
+      },
+      "interval": "Interval",
+      "recurrenceEnd": "Recurrence end date",
+      "externalLinks": "External links",
+      "linkTitlePlaceholder": "Link title",
+      "linkUrlPlaceholder": "https://...",
+      "addLink": "Add a link",
+      "publishSection": "Publication",
+      "publishImmediately": "Publish immediately",
+      "publishDate": "Publication date",
+      "targetGroupsSection": "Visibility",
+      "targetGroupsHelp": "Select the groups that will see this event, or leave public for everyone.",
+      "publicEvent": "Public event",
+      "publicEventHelp": "Visible to all users",
+      "noGroupSelected": "Select at least one group or make the event public",
+      "addGroup": "+ Add a group",
+      "classification": "Classification",
+      "category": "Category",
+      "noCategory": "No category",
+      "priority": "Priority",
+      "priorities": {
+        "normal": "Normal",
+        "important": "Important",
+        "urgent": "Urgent"
+      },
+      "color": "Color",
+      "createEvent": "Create event",
+      "updateEvent": "Update",
+      "loadError": "Failed to load event",
+      "saveError": "Failed to save event",
+      "createSuccess": "Event created successfully",
+      "updateSuccess": "Event updated successfully"
     }
   },
   "events": {

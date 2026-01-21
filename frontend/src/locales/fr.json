@@ -586,6 +586,7 @@
     "myAppGroups": "Mes AppGroups",
     "myApplications": "Mes Applications",
     "myPolls": "Mes Sondages",
+    "events": "Événements",
     "groupNews": "News de Groupe",
     "yourGroups": "Vos Groupes",
     "yourGroupsSubtitle": "Groupes dont vous êtes administrateur",
@@ -888,6 +889,135 @@
         "description": "Créez votre premier sondage pour vos groupes",
         "createButton": "Créer un sondage"
       }
+    },
+    "eventsManagement": {
+      "title": "Événements de Groupe",
+      "subtitle": "Gérez les événements pour vos groupes",
+      "newEvent": "Nouvel Événement",
+      "infoTitle": "Gestion des événements de groupe",
+      "infoDescription": "En tant que Group Admin, vous pouvez créer des événements pour vos groupes administrés. Les événements publics seront visibles par tous, tandis que les événements ciblés ne seront visibles que par les membres des groupes sélectionnés.",
+      "searchPlaceholder": "Rechercher des événements...",
+      "categoryFilter": {
+        "all": "Toutes les catégories"
+      },
+      "statusFilter": {
+        "all": "Tous les statuts",
+        "published": "Publié",
+        "draft": "Brouillon"
+      },
+      "typeFilter": {
+        "all": "Tous les types",
+        "recurring": "Récurrents",
+        "allDay": "Journée entière",
+        "upcoming": "À venir",
+        "past": "Passés"
+      },
+      "status": {
+        "published": "Publié",
+        "draft": "Brouillon"
+      },
+      "priority": {
+        "urgent": "Urgent",
+        "important": "Important",
+        "normal": "Normal"
+      },
+      "indicators": {
+        "recurring": "Événement récurrent",
+        "allDay": "Journée entière"
+      },
+      "author": {
+        "unknown": "Inconnu"
+      },
+      "visibility": {
+        "public": "Public"
+      },
+      "actions": {
+        "edit": "Modifier",
+        "delete": "Supprimer",
+        "publish": "Publier",
+        "unpublish": "Dépublier"
+      },
+      "pagination": {
+        "page": "Page {page} sur {pages}"
+      },
+      "empty": {
+        "title": "Aucun événement",
+        "noResults": "Aucun événement ne correspond à vos critères.",
+        "createFirst": "Créez votre premier événement pour vos groupes.",
+        "createButton": "Créer un événement"
+      },
+      "deleteConfirm": {
+        "title": "Supprimer l'événement",
+        "message": "Êtes-vous sûr de vouloir supprimer \"{title}\" ? Cette action est irréversible."
+      },
+      "loadError": "Erreur lors du chargement des événements",
+      "updateError": "Erreur lors de la mise à jour de l'événement",
+      "deleteError": "Erreur lors de la suppression de l'événement",
+      "deleteSuccess": "Événement supprimé avec succès",
+      "publishedSuccess": "Événement publié avec succès",
+      "unpublishedSuccess": "Événement dépublié avec succès"
+    },
+    "eventEditor": {
+      "title": {
+        "new": "Nouvel Événement de Groupe",
+        "edit": "Modifier l'Événement"
+      },
+      "subtitle": {
+        "new": "Créez un nouvel événement pour vos groupes",
+        "edit": "Modifiez votre événement de groupe"
+      },
+      "backToList": "Retour à la liste",
+      "titleLabel": "Titre",
+      "titlePlaceholder": "Entrez un titre pour votre événement...",
+      "descriptionLabel": "Description",
+      "descriptionPlaceholder": "Décrivez votre événement...",
+      "dateTime": "Date et heure",
+      "startDate": "Date de début",
+      "endDate": "Date de fin",
+      "allDay": "Journée entière",
+      "allDayHelp": "L'événement dure toute la journée, sans heure précise",
+      "location": "Lieu",
+      "locationPlaceholder": "Salle de réunion, adresse, lien visio...",
+      "recurrence": "Récurrence",
+      "isRecurring": "Événement récurrent",
+      "recurrenceType": "Type de récurrence",
+      "recurrenceTypes": {
+        "daily": "Quotidien",
+        "weekly": "Hebdomadaire",
+        "monthly": "Mensuel",
+        "yearly": "Annuel"
+      },
+      "interval": "Intervalle",
+      "recurrenceEnd": "Date de fin de récurrence",
+      "externalLinks": "Liens externes",
+      "linkTitlePlaceholder": "Titre du lien",
+      "linkUrlPlaceholder": "https://...",
+      "addLink": "Ajouter un lien",
+      "publishSection": "Publication",
+      "publishImmediately": "Publier immédiatement",
+      "publishDate": "Date de publication",
+      "targetGroupsSection": "Visibilité",
+      "targetGroupsHelp": "Sélectionnez les groupes qui verront cet événement, ou laissez public pour tous.",
+      "publicEvent": "Événement public",
+      "publicEventHelp": "Visible par tous les utilisateurs",
+      "noGroupSelected": "Sélectionnez au moins un groupe ou rendez l'événement public",
+      "addGroup": "+ Ajouter un groupe",
+      "classification": "Classification",
+      "category": "Catégorie",
+      "noCategory": "Aucune catégorie",
+      "priority": "Priorité",
+      "priorities": {
+        "normal": "Normal",
+        "important": "Important",
+        "urgent": "Urgent"
+      },
+      "color": "Couleur",
+      "createEvent": "Créer l'événement",
+      "updateEvent": "Mettre à jour",
+      "loadError": "Échec du chargement de l'événement",
+      "saveError": "Échec de l'enregistrement de l'événement",
+      "createSuccess": "Événement créé avec succès",
+      "updateSuccess": "Événement mis à jour avec succès"
     }
   },
   "version": {

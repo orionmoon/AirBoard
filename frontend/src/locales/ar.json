@@ -367,6 +367,7 @@
     "myAppGroups": "مجموعات التطبيقات الخاصة بي",
     "myApplications": "تطبيقاتي",
     "myPolls": "استطلاعاتي",
+    "events": "الأحداث",
     "manageNewsDesc": "نشر أخبار لمجموعاتك",
     "appGroupModal": {
       "title": {
@@ -659,6 +660,135 @@
         "description": "أنشئ أول استطلاع لمجموعاتك",
         "createButton": "إنشاء استطلاع"
       }
+    },
+    "eventsManagement": {
+      "title": "أحداث المجموعة",
+      "subtitle": "إدارة الأحداث لمجموعاتك",
+      "newEvent": "حدث جديد",
+      "infoTitle": "إدارة أحداث المجموعة",
+      "infoDescription": "بصفتك مدير مجموعة، يمكنك إنشاء أحداث لمجموعاتك المُدارة. ستكون الأحداث العامة مرئية للجميع، بينما ستكون الأحداث المستهدفة مرئية فقط لأعضاء المجموعات المختارة.",
+      "searchPlaceholder": "البحث عن الأحداث...",
+      "categoryFilter": {
+        "all": "جميع الفئات"
+      },
+      "statusFilter": {
+        "all": "جميع الحالات",
+        "published": "منشور",
+        "draft": "مسودة"
+      },
+      "typeFilter": {
+        "all": "جميع الأنواع",
+        "recurring": "متكررة",
+        "allDay": "طوال اليوم",
+        "upcoming": "قادمة",
+        "past": "سابقة"
+      },
+      "status": {
+        "published": "منشور",
+        "draft": "مسودة"
+      },
+      "priority": {
+        "urgent": "عاجل",
+        "important": "مهم",
+        "normal": "عادي"
+      },
+      "indicators": {
+        "recurring": "حدث متكرر",
+        "allDay": "طوال اليوم"
+      },
+      "author": {
+        "unknown": "غير معروف"
+      },
+      "visibility": {
+        "public": "عام"
+      },
+      "actions": {
+        "edit": "تعديل",
+        "delete": "حذف",
+        "publish": "نشر",
+        "unpublish": "إلغاء النشر"
+      },
+      "pagination": {
+        "page": "الصفحة {page} من {pages}"
+      },
+      "empty": {
+        "title": "لا توجد أحداث",
+        "noResults": "لا توجد أحداث تطابق معاييرك.",
+        "createFirst": "أنشئ أول حدث لمجموعاتك.",
+        "createButton": "إنشاء حدث"
+      },
+      "deleteConfirm": {
+        "title": "حذف الحدث",
+        "message": "هل أنت متأكد من حذف \"{title}\"؟ هذا الإجراء لا يمكن التراجع عنه."
+      },
+      "loadError": "خطأ في تحميل الأحداث",
+      "updateError": "خطأ في تحديث الحدث",
+      "deleteError": "خطأ في حذف الحدث",
+      "deleteSuccess": "تم حذف الحدث بنجاح",
+      "publishedSuccess": "تم نشر الحدث بنجاح",
+      "unpublishedSuccess": "تم إلغاء نشر الحدث بنجاح"
+    },
+    "eventEditor": {
+      "title": {
+        "new": "حدث مجموعة جديد",
+        "edit": "تعديل الحدث"
+      },
+      "subtitle": {
+        "new": "أنشئ حدثًا جديدًا لمجموعاتك",
+        "edit": "عدّل حدث مجموعتك"
+      },
+      "backToList": "العودة إلى القائمة",
+      "titleLabel": "العنوان",
+      "titlePlaceholder": "أدخل عنوانًا لحدثك...",
+      "descriptionLabel": "الوصف",
+      "descriptionPlaceholder": "صف حدثك...",
+      "dateTime": "التاريخ والوقت",
+      "startDate": "تاريخ البداية",
+      "endDate": "تاريخ النهاية",
+      "allDay": "طوال اليوم",
+      "allDayHelp": "الحدث يستمر طوال اليوم بدون وقت محدد",
+      "location": "الموقع",
+      "locationPlaceholder": "غرفة الاجتماع، العنوان، رابط مؤتمر الفيديو...",
+      "recurrence": "التكرار",
+      "isRecurring": "حدث متكرر",
+      "recurrenceType": "نوع التكرار",
+      "recurrenceTypes": {
+        "daily": "يومي",
+        "weekly": "أسبوعي",
+        "monthly": "شهري",
+        "yearly": "سنوي"
+      },
+      "interval": "الفاصل",
+      "recurrenceEnd": "تاريخ نهاية التكرار",
+      "externalLinks": "روابط خارجية",
+      "linkTitlePlaceholder": "عنوان الرابط",
+      "linkUrlPlaceholder": "https://...",
+      "addLink": "إضافة رابط",
+      "publishSection": "النشر",
+      "publishImmediately": "نشر فوري",
+      "publishDate": "تاريخ النشر",
+      "targetGroupsSection": "الرؤية",
+      "targetGroupsHelp": "اختر المجموعات التي ستشاهد هذا الحدث، أو اتركه عامًا للجميع.",
+      "publicEvent": "حدث عام",
+      "publicEventHelp": "مرئي لجميع المستخدمين",
+      "noGroupSelected": "اختر مجموعة واحدة على الأقل أو اجعل الحدث عامًا",
+      "addGroup": "+ إضافة مجموعة",
+      "classification": "التصنيف",
+      "category": "الفئة",
+      "noCategory": "لا توجد فئة",
+      "priority": "الأولوية",
+      "priorities": {
+        "normal": "عادي",
+        "important": "مهم",
+        "urgent": "عاجل"
+      },
+      "color": "اللون",
+      "createEvent": "إنشاء حدث",
+      "updateEvent": "تحديث",
+      "loadError": "فشل في تحميل الحدث",
+      "saveError": "فشل في حفظ الحدث",
+      "createSuccess": "تم إنشاء الحدث بنجاح",
+      "updateSuccess": "تم تحديث الحدث بنجاح"
     }
   },
   "version": {
