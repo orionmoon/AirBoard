@@ -105,15 +105,23 @@ type AnnouncementEmailData struct {
 
 // SendNotification envoie des notifications email aux groupes cibles
 func (s *EmailService) SendNotification(templateType string, contentID uint, targetGroupIDs []uint) error {
-	// Récupérer la config SMTP
+	// Récupérer la config SMTP avec la config OAuth si disponible
 	var smtpConfig models.SMTPConfig
-	if err := s.db.First(&smtpConfig).Error; err != nil {
+	if err := s.db.Preload("EmailOAuthConfig").First(&smtpConfig).Error; err != nil {
 		log.Printf("[Email] SMTP non configuré: %v", err)
 		return fmt.Errorf("SMTP non configuré: %w", err)
 	}
 	if !smtpConfig.IsEnabled {
 		log.Println("[Email] SMTP désactivé, notification ignorée")
 		return nil
+	}
+
+	// Log du mode d'authentification utilisé
+	if smtpConfig.UseOAuth && smtpConfig.EmailOAuthConfig != nil && smtpConfig.EmailOAuthConfig.IsEnabled {
+		log.Printf("[Email] Mode OAuth 2.0 activé (provider: %s, grant: %s)",
+			smtpConfig.EmailOAuthConfig.Provider, smtpConfig.EmailOAuthConfig.GrantType)
+	} else {
+		log.Printf("[Email] Mode SMTP classique (password)")
 	}
 
 	// Récupérer le template
