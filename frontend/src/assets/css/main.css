@@ -130,6 +130,14 @@ html {
   @apply px-0 text-center overflow-hidden whitespace-nowrap text-[0px];
 }
 
+.sidebar-subsection-title {
+  @apply px-3 mt-4 mb-2 text-xs font-medium text-gray-600 dark:text-gray-400 transition-all duration-300;
+}
+
+.sidebar-collapsed .sidebar-subsection-title {
+  @apply px-0 text-center overflow-hidden whitespace-nowrap text-[0px];
+}
+
 .nav-link {
   @apply flex items-center gap-3 px-3 py-2 ml-3 rounded-lg text-xs font-medium transition-all duration-300;
 }

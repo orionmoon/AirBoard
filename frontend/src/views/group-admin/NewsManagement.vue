@@ -330,7 +330,10 @@ const loadNews = async () => {
       priority: filters.value.priority || undefined
     }
 
+    console.log('[DEBUG] Loading news with params:', params)
     const response = await groupAdminService.getNews(params)
+    console.log('[DEBUG] News response:', response)
+    console.log('[DEBUG] News count:', response.news?.length || 0)
     newsList.value = response.news || []
     pagination.value = {
       ...pagination.value,
@@ -339,7 +342,7 @@ const loadNews = async () => {
       total_pages: response.total_pages || 1
     }
   } catch (error) {
-    console.error('Error loading news:', error)
+    console.error('[ERROR] Error loading news:', error)
     newsList.value = []
   } finally {
     isLoading.value = false
@@ -395,11 +398,16 @@ const deleteNews = async () => {
 
   try {
     deleteLoading.value = true
-    await groupAdminService.deleteNews(newsToDelete.value.id)
+    console.log('[DEBUG] Deleting news with ID:', newsToDelete.value.id)
+    const deleteResponse = await groupAdminService.deleteNews(newsToDelete.value.id)
+    console.log('[DEBUG] Delete response:', deleteResponse)
     closeDeleteModal()
+    console.log('[DEBUG] Reloading news list...')
     await loadNews()
+    console.log('[DEBUG] News list after reload:', newsList.value.map(n => ({ id: n.id, title: n.title })))
+    appStore.showSuccess($t('groupAdmin.newsManagement.deleteSuccess'))
   } catch (error) {
-    console.error('Error deleting news:', error)
+    console.error('[ERROR] Error deleting news:', error)
     appStore.showError($t('groupAdmin.newsManagement.deleteError'))
   } finally {
     deleteLoading.value = false

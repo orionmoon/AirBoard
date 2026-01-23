@@ -42,6 +42,11 @@ func (h *NewsHandler) GetNews(c *gin.Context) {
 		Preload("Reactions").
 		Preload("TargetGroups")
 
+	log.Printf("[DEBUG GetNews] Starting query for role=%s, userID=%d, path=%s", c.GetString("role"), c.GetUint("user_id"), c.Request.URL.Path)
+
+	// Explicit soft delete filter (complex WHERE clauses may bypass GORM's automatic filter)
+	query = query.Where("deleted_at IS NULL")
+
 	// Filtres
 	if categoryID := c.Query("category_id"); categoryID != "" {
 		query = query.Where("category_id = ?", categoryID)
@@ -131,7 +136,7 @@ func (h *NewsHandler) GetNews(c *gin.Context) {
 
 		// Si le group_admin accède via /group-admin/news, on filtre strictement
 		// Sinon (lecture publique via /news), il voit les news publiques comme un user normal
-		isAdminInterface := c.Request.URL.Path == "/api/v1/group-admin/news"
+		isAdminInterface := strings.HasPrefix(c.Request.URL.Path, "/api/v1/group-admin/news")
 
 		if isAdminInterface {
 			// Interface d'administration : seulement les news qu'il peut gérer
@@ -222,6 +227,11 @@ func (h *NewsHandler) GetNews(c *gin.Context) {
 	totalPages := int(total) / pageSize
 	if int(total)%pageSize > 0 {
 		totalPages++
+	}
+
+	log.Printf("[DEBUG GetNews] Returning %d news (total=%d, page=%d, totalPages=%d)", len(news), total, page, totalPages)
+	for i, n := range news {
+		log.Printf("[DEBUG GetNews] News[%d]: ID=%d, Title=%s, DeletedAt=%v", i, n.ID, n.Title, n.DeletedAt)
 	}
 
 	c.JSON(http.StatusOK, models.NewsListResponse{
@@ -377,7 +387,8 @@ func (h *NewsHandler) CreateNews(c *gin.Context) {
 
 	// Créer la news
 	if err := h.db.Create(&news).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create news"})
+		log.Printf("[ERROR CreateNews] Failed to create news: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create news", "details": err.Error()})
 		return
 	}
 
@@ -668,15 +679,19 @@ func (h *NewsHandler) DeleteNews(c *gin.Context) {
 	}
 
 	if !canDelete {
+		log.Printf("[DEBUG DeleteNews] Permission denied for user %d (role=%s) to delete news %d", userID, userRole, news.ID)
 		c.JSON(http.StatusForbidden, gin.H{"error": "You don't have permission to delete this news"})
 		return
 	}
 
+	log.Printf("[DEBUG DeleteNews] Deleting news ID=%d by user %d (role=%s)", news.ID, userID, userRole)
 	if err := h.db.Delete(&news).Error; err != nil {
+		log.Printf("[ERROR DeleteNews] Failed to delete news %d: %v", news.ID, err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete news"})
 		return
 	}
 
+	log.Printf("[DEBUG DeleteNews] Successfully deleted news ID=%d", news.ID)
 	c.JSON(http.StatusOK, gin.H{"message": "News deleted successfully"})
 }
 

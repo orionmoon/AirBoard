@@ -10,7 +10,7 @@ import (
 // Event représente un événement dans le calendrier
 type Event struct {
 	ID          uint   `json:"id" gorm:"primaryKey"`
-	Slug        string `json:"slug" gorm:"uniqueIndex;size:255;not null"`
+	Slug        string `json:"slug" gorm:"size:255;not null;uniqueIndex:idx_event_slug,where:deleted_at IS NULL"`
 	Title       string `json:"title" gorm:"not null;size:255"`
 	Description string `json:"description" gorm:"type:text"` // Contenu riche (JSON Tiptap)
 
@@ -61,8 +61,8 @@ type Event struct {
 // EventCategory représente une catégorie d'événements
 type EventCategory struct {
 	ID          uint           `json:"id" gorm:"primaryKey"`
-	Name        string         `json:"name" gorm:"uniqueIndex;size:100;not null"`
-	Slug        string         `json:"slug" gorm:"uniqueIndex;size:100;not null"`
+	Name        string         `json:"name" gorm:"size:100;not null;uniqueIndex:idx_event_category_name,where:deleted_at IS NULL"`
+	Slug        string         `json:"slug" gorm:"size:100;not null;uniqueIndex:idx_event_category_slug,where:deleted_at IS NULL"`
 	Description string         `json:"description" gorm:"size:500"`
 	Icon        string         `json:"icon" gorm:"size:100;default:'mdi:calendar'"` // Icône Iconify
 	Color       string         `json:"color" gorm:"size:20;default:'#3B82F6'"`      // Couleur hex

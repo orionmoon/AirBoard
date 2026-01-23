@@ -41,6 +41,11 @@ func (h *PollsHandler) GetPolls(c *gin.Context) {
 		Preload("News").
 		Preload("Announcement")
 
+	log.Printf("[DEBUG GetPolls] Starting query for role=%s, userID=%d, path=%s", c.GetString("role"), c.GetUint("user_id"), c.Request.URL.Path)
+
+	// Explicit soft delete filter (complex WHERE clauses may bypass GORM's automatic filter)
+	query = query.Where("deleted_at IS NULL")
+
 	// Filtres
 	if status := c.Query("status"); status != "" {
 		if status == "active" {
@@ -99,10 +104,11 @@ func (h *PollsHandler) GetPolls(c *gin.Context) {
 
 	if userRole == "admin" {
 		// Admin voit tout
-	} else {
-		// Récupérer les groupes administrés ET les groupes d'appartenance
+	} else if userRole == "group_admin" {
+		// Group admin : distinguer interface admin vs interface publique
 		managedGroupIDs := middleware.GetManagedGroupIDs(c)
 
+		// Récupérer aussi les groupes d'appartenance pour la lecture publique
 		var userGroupIDs []uint
 		h.db.Table("user_groups").Where("user_id = ?", userID).Pluck("group_id", &userGroupIDs)
 
@@ -114,13 +120,52 @@ func (h *PollsHandler) GetPolls(c *gin.Context) {
 		for _, id := range managedGroupIDs {
 			allGroupIDs[id] = true
 		}
-
 		var combinedGroupIDs []uint
 		for id := range allGroupIDs {
 			combinedGroupIDs = append(combinedGroupIDs, id)
 		}
 
-		if len(combinedGroupIDs) > 0 {
+		// Si le group_admin accède via /group-admin/polls, on filtre strictement
+		// Sinon (lecture publique via /polls), il voit les sondages comme un user normal
+		isAdminInterface := strings.HasPrefix(c.Request.URL.Path, "/api/v1/group-admin/polls")
+
+		if isAdminInterface {
+			// Interface d'administration : seulement les sondages qu'il peut gérer
+			if len(managedGroupIDs) > 0 {
+				query = query.Where(`
+					(author_id = ?) OR
+					EXISTS (
+						SELECT 1 FROM poll_target_groups
+						WHERE poll_target_groups.poll_id = polls.id
+						AND poll_target_groups.group_id IN (?)
+					)
+				`, userID, managedGroupIDs)
+			} else {
+				// Pas de groupes gérés : uniquement ses propres sondages
+				query = query.Where("author_id = ?", userID)
+			}
+		} else {
+			// Interface publique : sondages globaux + ceux de ses groupes (appartenance + administration)
+			if len(combinedGroupIDs) > 0 {
+				query = query.Where(`
+					(SELECT COUNT(*) FROM poll_target_groups WHERE poll_target_groups.poll_id = polls.id) = 0
+					OR EXISTS (
+						SELECT 1 FROM poll_target_groups
+						WHERE poll_target_groups.poll_id = polls.id
+						AND poll_target_groups.group_id IN (?)
+					)
+				`, combinedGroupIDs)
+			} else {
+				// Si pas de groupes, voir seulement les sondages globaux
+				query = query.Where("(SELECT COUNT(*) FROM poll_target_groups WHERE poll_target_groups.poll_id = polls.id) = 0")
+			}
+		}
+	} else {
+		// User régulier ou editor : sondages globaux + ceux de leurs groupes
+		var userGroupIDs []uint
+		h.db.Table("user_groups").Where("user_id = ?", userID).Pluck("group_id", &userGroupIDs)
+
+		if len(userGroupIDs) > 0 {
 			query = query.Where(`
 				(SELECT COUNT(*) FROM poll_target_groups WHERE poll_target_groups.poll_id = polls.id) = 0
 				OR EXISTS (
@@ -128,7 +173,7 @@ func (h *PollsHandler) GetPolls(c *gin.Context) {
 					WHERE poll_target_groups.poll_id = polls.id
 					AND poll_target_groups.group_id IN (?)
 				)
-			`, combinedGroupIDs)
+			`, userGroupIDs)
 		} else {
 			// Si pas de groupes, voir seulement les sondages globaux
 			query = query.Where("(SELECT COUNT(*) FROM poll_target_groups WHERE poll_target_groups.poll_id = polls.id) = 0")

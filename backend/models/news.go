@@ -1,6 +1,7 @@
 package models
 
 import (
+	"fmt"
 	"regexp"
 	"strings"
 	"time"
@@ -12,7 +13,7 @@ import (
 // News représente un article du News Hub
 type News struct {
 	ID          uint       `json:"id" gorm:"primaryKey"`
-	Slug        string     `json:"slug" gorm:"uniqueIndex;not null"`
+	Slug        string     `json:"slug" gorm:"not null;uniqueIndex:idx_news_slug,where:deleted_at IS NULL"`
 	Title       string     `json:"title" gorm:"not null"`
 	Summary     string     `json:"summary" gorm:"type:varchar(300)"` // Résumé court (max 300 chars)
 	Content     string     `json:"content" gorm:"type:text"`         // Contenu riche (JSON Tiptap)
@@ -53,7 +54,7 @@ type News struct {
 type NewsCategory struct {
 	ID          uint           `json:"id" gorm:"primaryKey"`
 	Name        string         `json:"name" gorm:"not null;uniqueIndex"`
-	Slug        string         `json:"slug" gorm:"uniqueIndex;not null"`
+	Slug        string         `json:"slug" gorm:"not null;uniqueIndex:idx_category_slug,where:deleted_at IS NULL"`
 	Description string         `json:"description"`
 	Icon        string         `json:"icon" gorm:"default:'mdi:newspaper'"` // Icône Iconify
 	Color       string         `json:"color" gorm:"default:'#3B82F6'"`      // Couleur hex
@@ -67,8 +68,8 @@ type NewsCategory struct {
 // Tag représente un tag/étiquette
 type Tag struct {
 	ID        uint           `json:"id" gorm:"primaryKey"`
-	Name      string         `json:"name" gorm:"not null;uniqueIndex"`
-	Slug      string         `json:"slug" gorm:"uniqueIndex;not null"`
+	Name      string         `json:"name" gorm:"not null;uniqueIndex:idx_tag_name,where:deleted_at IS NULL"`
+	Slug      string         `json:"slug" gorm:"not null;uniqueIndex:idx_tag_slug,where:deleted_at IS NULL"`
 	Color     string         `json:"color" gorm:"default:'#6B7280'"` // Couleur hex
 	CreatedAt time.Time      `json:"created_at"`
 	UpdatedAt time.Time      `json:"updated_at"`
@@ -180,7 +181,21 @@ func (NewsRead) TableName() string {
 // BeforeSave hook pour générer le slug automatiquement
 func (n *News) BeforeSave(tx *gorm.DB) error {
 	if n.Slug == "" {
-		n.Slug = generateSlug(n.Title)
+		baseSlug := generateSlug(n.Title)
+		slug := baseSlug
+
+		// Vérifier l'unicité du slug (seulement pour les enregistrements non supprimés)
+		var count int64
+		for i := 1; ; i++ {
+			tx.Model(&News{}).Where("slug = ? AND deleted_at IS NULL AND id != ?", slug, n.ID).Count(&count)
+			if count == 0 {
+				break
+			}
+			// Si le slug existe déjà, ajouter un suffixe numérique
+			slug = fmt.Sprintf("%s-%d", baseSlug, i)
+		}
+
+		n.Slug = slug
 	}
 	return nil
 }

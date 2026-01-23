@@ -39,6 +39,9 @@ func (h *EventsHandler) GetEvents(c *gin.Context) {
 		Preload("Tags").
 		Preload("TargetGroups")
 
+	// Explicit soft delete filter (complex WHERE clauses may bypass GORM's automatic filter)
+	query = query.Where("deleted_at IS NULL")
+
 	// Filtres
 	if categoryID := c.Query("category_id"); categoryID != "" {
 		query = query.Where("category_id = ?", categoryID)

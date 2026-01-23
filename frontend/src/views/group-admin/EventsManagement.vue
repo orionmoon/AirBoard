@@ -512,12 +512,16 @@ const deleteEvent = async () => {
 
   try {
     deleteLoading.value = true
-    await groupAdminEventsService.deleteEvent(eventToDelete.value.id)
+    console.log('[DEBUG Events] Deleting event with ID:', eventToDelete.value.id)
+    const deleteResponse = await groupAdminEventsService.deleteEvent(eventToDelete.value.id)
+    console.log('[DEBUG Events] Delete response:', deleteResponse)
     closeDeleteModal()
+    console.log('[DEBUG Events] Reloading events list...')
     await loadEvents()
+    console.log('[DEBUG Events] Events list after reload:', eventsList.value.map(e => ({ id: e.id, title: e.title })))
     appStore.showSuccess(proxy.$t('groupAdmin.eventsManagement.deleteSuccess'))
   } catch (error) {
-    console.error('Error deleting event:', error)
+    console.error('[ERROR Events] Error deleting event:', error)
     appStore.showError(proxy.$t('groupAdmin.eventsManagement.deleteError'))
   } finally {
     deleteLoading.value = false

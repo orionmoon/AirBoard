@@ -33,7 +33,7 @@
         </div>
       </div>
 
-      <!-- Sidebar collapsed content - just icon (NOT clickable on desktop, handled by floating button in App.vue) -->
+      <!-- Sidebar collapsed content - just icon -->
       <div
         v-else
         class="flex items-center justify-center w-full"
@@ -46,250 +46,209 @@
 
     <!-- Navigation -->
     <nav class="sidebar-nav">
-      <!-- Home -->
-      <router-link
-        to="/home"
-        :class="getLinkClasses('/home')"
-      >
-        <Icon icon="mdi:home" class="h-4 w-4" />
-        <span>{{ $t('common.home') }}</span>
-      </router-link>
-
-      <!-- Applications (ex-Dashboard) -->
-      <router-link
-        to="/dashboard"
-        :class="getLinkClasses('/dashboard')"
-      >
-        <Icon icon="mdi:application" class="h-4 w-4" />
-        <span>{{ $t('common.applications') }}</span>
-      </router-link>
-
-      <router-link
-        to="/news"
-        :class="getLinkClasses('/news')"
-      >
-        <Icon icon="mdi:newspaper" class="h-4 w-4" />
-        <span>{{ $t('common.newsHub') }}</span>
-      </router-link>
-
-      <router-link
-        to="/events"
-        :class="getLinkClasses('/events')"
-      >
-        <Icon icon="mdi:calendar" class="h-4 w-4" />
-        <span>{{ $t('common.events') }}</span>
-      </router-link>
-
-      <router-link
-        to="/polls"
-        :class="getLinkClasses('/polls')"
-      >
-        <Icon icon="mdi:poll" class="h-4 w-4" />
-        <span>{{ $t('common.polls') }}</span>
-      </router-link>
-
-      <!-- Dashboard & Analytics (Admin only) -->
-      <div v-if="authStore.isAdmin" class="sidebar-section">
-        <div class="sidebar-section-title">
-          {{ $t('common.dashboardAnalytics') }}
-        </div>
-
-        <router-link
-          to="/admin/analytics"
-          :class="getLinkClasses('/admin/analytics')"
-        >
-          <Icon icon="mdi:chart-line" class="h-4 w-4" />
-          <span>{{ $t('common.analytics') }}</span>
-        </router-link>
-      </div>
-
-      <!-- Applications Management (Admin only) -->
-      <div v-if="authStore.isAdmin" class="sidebar-section">
-        <div class="sidebar-section-title">
-          {{ $t('common.applicationsManagement') }}
-        </div>
-
-        <router-link
-          to="/admin/app-groups"
-          :class="getLinkClasses('/admin/app-groups')"
-        >
-          <Icon icon="mdi:folder-multiple" class="h-4 w-4" />
-          <span>{{ $t('common.appGroups') }}</span>
+      <!-- ========================================== -->
+      <!-- ESPACE UTILISATEUR - Navigation principale -->
+      <!-- ========================================== -->
+      <div class="sidebar-section">
+        <router-link to="/home" :class="getLinkClasses('/home')">
+          <Icon icon="mdi:home" class="h-4 w-4" />
+          <span>{{ $t('common.home') }}</span>
         </router-link>
 
-        <router-link
-          to="/admin/applications"
-          :class="getLinkClasses('/admin/applications')"
-        >
-          <Icon icon="mdi:apps" class="h-4 w-4" />
+        <router-link to="/dashboard" :class="getLinkClasses('/dashboard')">
+          <Icon icon="mdi:application" class="h-4 w-4" />
           <span>{{ $t('common.applications') }}</span>
         </router-link>
-      </div>
 
-      <!-- Content Management (Admin and Editor) -->
-      <div v-if="authStore.user?.role === 'admin' || authStore.user?.role === 'editor'" class="sidebar-section">
-        <div class="sidebar-section-title">
-          {{ $t('common.contentManagement') }}
-        </div>
-
-        <router-link
-          to="/admin/news"
-          :class="getLinkClasses('/admin/news')"
-        >
+        <router-link to="/news" :class="getLinkClasses('/news')">
           <Icon icon="mdi:newspaper" class="h-4 w-4" />
-          <span>{{ $t('admin.newsArticles') }}</span>
+          <span>{{ $t('common.newsHub') }}</span>
         </router-link>
 
-        <router-link
-          to="/admin/events"
-          :class="getLinkClasses('/admin/events')"
-        >
-          <Icon icon="mdi:calendar-edit" class="h-4 w-4" />
-          <span>{{ $t('common.eventsManagement') }}</span>
+        <router-link to="/events" :class="getLinkClasses('/events')">
+          <Icon icon="mdi:calendar" class="h-4 w-4" />
+          <span>{{ $t('common.events') }}</span>
         </router-link>
 
-        <router-link
-          to="/admin/polls"
-          :class="getLinkClasses('/admin/polls')"
-        >
+        <router-link to="/polls" :class="getLinkClasses('/polls')">
           <Icon icon="mdi:poll" class="h-4 w-4" />
-          <span>{{ $t('common.pollsManagement') }}</span>
-        </router-link>
-
-        <router-link
-          v-if="authStore.isAdmin"
-          to="/admin/announcements"
-          :class="getLinkClasses('/admin/announcements')"
-        >
-          <Icon icon="mdi:bullhorn" class="h-4 w-4" />
-          <span>{{ $t('common.announcements') }}</span>
-        </router-link>
-
-        <router-link
-          v-if="authStore.isAdmin"
-          to="/admin/media"
-          :class="getLinkClasses('/admin/media')"
-        >
-          <Icon icon="mdi:image-multiple" class="h-4 w-4" />
-          <span>{{ $t('common.media') }}</span>
+          <span>{{ $t('common.polls') }}</span>
         </router-link>
       </div>
 
-      <!-- Users & Groups (Admin only) -->
-      <div v-if="authStore.isAdmin" class="sidebar-section">
-        <div class="sidebar-section-title">
-          {{ $t('common.usersGroups') }}
-        </div>
-
-        <router-link
-          to="/admin/users"
-          :class="getLinkClasses('/admin/users')"
-        >
-          <Icon icon="mdi:account-multiple" class="h-4 w-4" />
-          <span>{{ $t('common.users') }}</span>
-        </router-link>
-
-        <router-link
-          to="/admin/groups"
-          :class="getLinkClasses('/admin/groups')"
-        >
-          <Icon icon="mdi:account-group" class="h-4 w-4" />
-          <span>{{ $t('common.groups') }}</span>
-        </router-link>
-      </div>
-
-      <!-- System Configuration (Admin only) -->
-      <div v-if="authStore.isAdmin" class="sidebar-section">
-        <div class="sidebar-section-title">
-          {{ $t('common.systemConfiguration') }}
-        </div>
-
-        <router-link
-          to="/admin/settings"
-          :class="getLinkClasses('/admin/settings')"
-        >
-          <Icon icon="mdi:cog" class="h-4 w-4" />
-          <span>{{ $t('common.settings') }}</span>
-        </router-link>
-
-        <router-link
-          to="/admin/oauth"
-          :class="getLinkClasses('/admin/oauth')"
-        >
-          <Icon icon="mdi:shield-key" class="h-4 w-4" />
-          <span>{{ $t('common.oauth') }}</span>
-        </router-link>
-
-        <router-link
-          to="/admin/email"
-          :class="getLinkClasses('/admin/email')"
-        >
-          <Icon icon="mdi:email-outline" class="h-4 w-4" />
-          <span>{{ $t('email.title') }}</span>
-        </router-link>
-
-        <router-link
-          to="/admin/comments"
-          :class="getLinkClasses('/admin/comments')"
-        >
-          <Icon icon="mdi:comment-text-outline" class="h-4 w-4" />
-          <span>{{ $t('moderation.title') }}</span>
-        </router-link>
-      </div>
-
-      <!-- Group Admin section (for admin and group_admin roles) -->
+      <!-- ========================================== -->
+      <!-- ADMINISTRATION DE GROUPE (Group Admin + Admin) -->
+      <!-- ========================================== -->
       <div v-if="authStore.isGroupAdmin || authStore.isAdmin" class="sidebar-section">
         <div class="sidebar-section-title">
           {{ $t('groupAdmin.title') }}
         </div>
 
-        <router-link
-          to="/group-admin"
-          :class="getLinkClasses('/group-admin', true)"
-        >
-          <Icon icon="mdi:shield-account" class="h-4 w-4" />
+        <router-link to="/group-admin" :class="getLinkClasses('/group-admin', true)">
+          <Icon icon="mdi:view-dashboard-outline" class="h-4 w-4" />
           <span>{{ $t('groupAdmin.dashboard') }}</span>
         </router-link>
 
-        <router-link
-          to="/group-admin/app-groups"
-          :class="getLinkClasses('/group-admin/app-groups')"
-        >
+        <router-link to="/group-admin/app-groups" :class="getLinkClasses('/group-admin/app-groups')">
           <Icon icon="mdi:folder-multiple" class="h-4 w-4" />
           <span>{{ $t('groupAdmin.myAppGroups') }}</span>
         </router-link>
 
-        <router-link
-          to="/group-admin/applications"
-          :class="getLinkClasses('/group-admin/applications')"
-        >
+        <router-link to="/group-admin/applications" :class="getLinkClasses('/group-admin/applications')">
           <Icon icon="mdi:apps" class="h-4 w-4" />
           <span>{{ $t('groupAdmin.myApplications') }}</span>
         </router-link>
 
-        <router-link
-          to="/group-admin/news"
-          :class="getLinkClasses('/group-admin/news')"
-        >
+        <router-link to="/group-admin/news" :class="getLinkClasses('/group-admin/news')">
           <Icon icon="mdi:newspaper-variant" class="h-4 w-4" />
           <span>{{ $t('groupAdmin.groupNews') }}</span>
         </router-link>
 
-        <router-link
-          to="/group-admin/events"
-          :class="getLinkClasses('/group-admin/events')"
-        >
+        <router-link to="/group-admin/events" :class="getLinkClasses('/group-admin/events')">
           <Icon icon="mdi:calendar-edit" class="h-4 w-4" />
           <span>{{ $t('groupAdmin.events') }}</span>
         </router-link>
 
-        <router-link
-          to="/group-admin/polls"
-          :class="getLinkClasses('/group-admin/polls')"
-        >
+        <router-link to="/group-admin/polls" :class="getLinkClasses('/group-admin/polls')">
           <Icon icon="mdi:poll" class="h-4 w-4" />
           <span>{{ $t('groupAdmin.myPolls') }}</span>
         </router-link>
+      </div>
+
+      <!-- ========================================== -->
+      <!-- ADMINISTRATION GLOBALE (Admin only) -->
+      <!-- ========================================== -->
+      <div v-if="authStore.isAdmin" class="sidebar-section">
+        <div class="sidebar-section-title">
+          {{ $t('common.administration') }}
+        </div>
+
+        <!-- Contenu -->
+        <CollapsibleMenu
+          :title="$t('common.contentManagement')"
+          icon="mdi:file-document-multiple"
+          storage-key="sidebar-admin-content"
+          :default-open="isContentSectionActive"
+        >
+          <router-link to="/admin/news" :class="getLinkClasses('/admin/news')">
+            <Icon icon="mdi:newspaper" class="h-4 w-4" />
+            <span>{{ $t('admin.newsArticles') }}</span>
+          </router-link>
+
+          <router-link to="/admin/events" :class="getLinkClasses('/admin/events')">
+            <Icon icon="mdi:calendar-edit" class="h-4 w-4" />
+            <span>{{ $t('common.eventsManagement') }}</span>
+          </router-link>
+
+          <router-link to="/admin/polls" :class="getLinkClasses('/admin/polls')">
+            <Icon icon="mdi:poll" class="h-4 w-4" />
+            <span>{{ $t('common.pollsManagement') }}</span>
+          </router-link>
+
+          <router-link to="/admin/announcements" :class="getLinkClasses('/admin/announcements')">
+            <Icon icon="mdi:bullhorn" class="h-4 w-4" />
+            <span>{{ $t('common.announcements') }}</span>
+          </router-link>
+
+          <router-link to="/admin/media" :class="getLinkClasses('/admin/media')">
+            <Icon icon="mdi:image-multiple" class="h-4 w-4" />
+            <span>{{ $t('common.media') }}</span>
+          </router-link>
+
+          <router-link to="/admin/comments" :class="getLinkClasses('/admin/comments')">
+            <Icon icon="mdi:comment-text-outline" class="h-4 w-4" />
+            <span>{{ $t('moderation.title') }}</span>
+          </router-link>
+        </CollapsibleMenu>
+
+        <!-- Utilisateurs & Accès -->
+        <CollapsibleMenu
+          :title="$t('common.usersAccess')"
+          icon="mdi:account-multiple"
+          storage-key="sidebar-admin-users"
+          :default-open="isUsersSectionActive"
+        >
+          <router-link to="/admin/users" :class="getLinkClasses('/admin/users')">
+            <Icon icon="mdi:account-multiple" class="h-4 w-4" />
+            <span>{{ $t('common.users') }}</span>
+          </router-link>
+
+          <router-link to="/admin/groups" :class="getLinkClasses('/admin/groups')">
+            <Icon icon="mdi:account-group" class="h-4 w-4" />
+            <span>{{ $t('common.groups') }}</span>
+          </router-link>
+
+          <router-link to="/admin/oauth" :class="getLinkClasses('/admin/oauth')">
+            <Icon icon="mdi:shield-key" class="h-4 w-4" />
+            <span>{{ $t('common.oauth') }}</span>
+          </router-link>
+        </CollapsibleMenu>
+
+        <!-- Catalogue d'applications -->
+        <CollapsibleMenu
+          :title="$t('common.appCatalog')"
+          icon="mdi:apps-box"
+          storage-key="sidebar-admin-apps"
+          :default-open="isAppsSectionActive"
+        >
+          <router-link to="/admin/app-groups" :class="getLinkClasses('/admin/app-groups')">
+            <Icon icon="mdi:folder-multiple" class="h-4 w-4" />
+            <span>{{ $t('common.appGroups') }}</span>
+          </router-link>
+
+          <router-link to="/admin/applications" :class="getLinkClasses('/admin/applications')">
+            <Icon icon="mdi:apps" class="h-4 w-4" />
+            <span>{{ $t('common.applications') }}</span>
+          </router-link>
+        </CollapsibleMenu>
+
+        <!-- Système -->
+        <CollapsibleMenu
+          :title="$t('common.system')"
+          icon="mdi:cog"
+          storage-key="sidebar-admin-system"
+          :default-open="isSystemSectionActive"
+        >
+          <router-link to="/admin/settings" :class="getLinkClasses('/admin/settings')">
+            <Icon icon="mdi:cog" class="h-4 w-4" />
+            <span>{{ $t('common.settings') }}</span>
+          </router-link>
+
+          <router-link to="/admin/email" :class="getLinkClasses('/admin/email')">
+            <Icon icon="mdi:email-outline" class="h-4 w-4" />
+            <span>{{ $t('email.title') }}</span>
+          </router-link>
+
+          <router-link to="/admin/analytics" :class="getLinkClasses('/admin/analytics')">
+            <Icon icon="mdi:chart-line" class="h-4 w-4" />
+            <span>{{ $t('common.analytics') }}</span>
+          </router-link>
+        </CollapsibleMenu>
+      </div>
+
+      <!-- Editor section (Editor only, not admin) -->
+      <div v-else-if="authStore.user?.role === 'editor'" class="sidebar-section">
+        <CollapsibleMenu
+          :title="$t('common.contentManagement')"
+          icon="mdi:file-document-edit"
+          storage-key="sidebar-editor-content"
+          :default-open="isEditorContentActive"
+        >
+          <router-link to="/admin/news" :class="getLinkClasses('/admin/news')">
+            <Icon icon="mdi:newspaper" class="h-4 w-4" />
+            <span>{{ $t('admin.newsArticles') }}</span>
+          </router-link>
+
+          <router-link to="/admin/events" :class="getLinkClasses('/admin/events')">
+            <Icon icon="mdi:calendar-edit" class="h-4 w-4" />
+            <span>{{ $t('common.eventsManagement') }}</span>
+          </router-link>
+
+          <router-link to="/admin/polls" :class="getLinkClasses('/admin/polls')">
+            <Icon icon="mdi:poll" class="h-4 w-4" />
+            <span>{{ $t('common.pollsManagement') }}</span>
+          </router-link>
+        </CollapsibleMenu>
       </div>
     </nav>
 
@@ -347,9 +306,9 @@
         </div>
       </div>
 
-      <!-- Sidebar collapsed content - compact controls (expand button only in footer) -->
+      <!-- Sidebar collapsed content - compact controls -->
       <div v-else class="flex flex-col items-center gap-3 mb-4">
-        <!-- Sidebar expand button - ONLY visible on desktop (hidden on mobile) -->
+        <!-- Sidebar expand button -->
         <button
           @click="appStore.toggleSidebar()"
           class="hidden lg:block p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
@@ -557,7 +516,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { Icon } from '@iconify/vue'
 import { useAuthStore } from '@/stores/auth'
@@ -566,6 +525,7 @@ import { useVersionStore } from '@/stores/version'
 import ZoomControl from '@/components/dashboard/ZoomControl.vue'
 import NotificationBell from '@/components/notifications/NotificationBell.vue'
 import HelpDrawer from '@/components/help/HelpDrawer.vue'
+import CollapsibleMenu from '@/components/layout/CollapsibleMenu.vue'
 
 const authStore = useAuthStore()
 const appStore = useAppStore()
@@ -580,6 +540,39 @@ const showHelpDrawer = ref(false)
 // State for user menu
 const showUserMenu = ref(false)
 const userMenuRef = ref(null)
+
+// Computed properties to check if sections should be open based on current route
+const isContentSectionActive = computed(() => {
+  return route.path.startsWith('/admin/news') ||
+         route.path.startsWith('/admin/events') ||
+         route.path.startsWith('/admin/polls') ||
+         route.path.startsWith('/admin/announcements') ||
+         route.path.startsWith('/admin/media') ||
+         route.path.startsWith('/admin/comments')
+})
+
+const isUsersSectionActive = computed(() => {
+  return route.path.startsWith('/admin/users') ||
+         route.path.startsWith('/admin/groups') ||
+         route.path.startsWith('/admin/oauth')
+})
+
+const isAppsSectionActive = computed(() => {
+  return route.path.startsWith('/admin/app-groups') ||
+         route.path.startsWith('/admin/applications')
+})
+
+const isSystemSectionActive = computed(() => {
+  return route.path.startsWith('/admin/settings') ||
+         route.path.startsWith('/admin/email') ||
+         route.path.startsWith('/admin/analytics')
+})
+
+const isEditorContentActive = computed(() => {
+  return route.path.startsWith('/admin/news') ||
+         route.path.startsWith('/admin/events') ||
+         route.path.startsWith('/admin/polls')
+})
 
 const toggleUserMenu = () => {
   showUserMenu.value = !showUserMenu.value
@@ -643,10 +636,10 @@ watch(() => appStore.settingsLastUpdated, async () => {
 
 // Functions
 const getLinkClasses = (path, exact = false) => {
-  const isActive = exact 
-    ? route.path === path 
+  const isActive = exact
+    ? route.path === path
     : route.path.startsWith(path)
-  
+
   return [
     'nav-link',
     isActive ? 'nav-link-active' : 'nav-link-inactive'
