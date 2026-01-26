@@ -400,7 +400,7 @@ docker-compose ps
 ### Option 2: Coolify Deployment
 
 1. Create a new project in Coolify
-2. Deploy from Git: `https://github.com/your-username/airboard.git`
+2. Deploy from Git: `https://github.com/orionmoon/airboard.git`
 3. Build Pack: `docker-compose`
 4. File: `docker-compose.prod.yaml`
 5. Configure environment variables (see [Configuration](#configuration))
