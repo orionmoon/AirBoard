@@ -31,29 +31,27 @@ func NewEmailHandler(db *gorm.DB, cfg *config.Config) *EmailHandler {
 	}
 }
 
-// GetSMTPConfig retourne la configuration SMTP actuelle (mot de passe masqué)
+// GetSMTPConfig retourne la configuration email actuelle (OAuth uniquement)
 func (h *EmailHandler) GetSMTPConfig(c *gin.Context) {
 	var config models.SMTPConfig
 
-	result := h.db.First(&config)
+	result := h.db.Preload("EmailOAuthConfig").First(&config)
 	if result.Error == gorm.ErrRecordNotFound {
 		// Retourner une config vide
 		c.JSON(http.StatusOK, models.SMTPConfig{
-			Port:        587,
-			UseTLS:      false,
-			UseSTARTTLS: true,
-			FromName:    "Airboard",
+			UseOAuth: true,
+			FromName: "Airboard",
 		})
 		return
 	} else if result.Error != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Erreur lors de la récupération de la configuration SMTP"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Erreur lors de la récupération de la configuration email"})
 		return
 	}
 
 	c.JSON(http.StatusOK, config)
 }
 
-// UpdateSMTPConfig crée ou met à jour la configuration SMTP
+// UpdateSMTPConfig crée ou met à jour la configuration email (OAuth uniquement)
 func (h *EmailHandler) UpdateSMTPConfig(c *gin.Context) {
 	var req models.SMTPConfigRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -64,33 +62,19 @@ func (h *EmailHandler) UpdateSMTPConfig(c *gin.Context) {
 	var smtpConfig models.SMTPConfig
 	h.db.First(&smtpConfig)
 
-	smtpConfig.Host = req.Host
-	smtpConfig.Port = req.Port
-	smtpConfig.Username = req.Username
 	smtpConfig.FromEmail = req.FromEmail
 	smtpConfig.FromName = req.FromName
-	smtpConfig.UseTLS = req.UseTLS
-	smtpConfig.UseSTARTTLS = req.UseSTARTTLS
 	smtpConfig.IsEnabled = req.IsEnabled
-
-	// Mettre à jour le mot de passe uniquement s'il est fourni
-	if req.Password != "" {
-		encryptedPassword, err := h.emailService.EncryptPassword(req.Password)
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Erreur lors du chiffrement du mot de passe"})
-			return
-		}
-		smtpConfig.Password = encryptedPassword
-	}
+	smtpConfig.UseOAuth = true // Toujours OAuth maintenant
 
 	if smtpConfig.ID == 0 {
 		if err := h.db.Create(&smtpConfig).Error; err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Erreur lors de la création de la configuration SMTP"})
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Erreur lors de la création de la configuration email"})
 			return
 		}
 	} else {
 		if err := h.db.Save(&smtpConfig).Error; err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Erreur lors de la mise à jour de la configuration SMTP"})
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Erreur lors de la mise à jour de la configuration email"})
 			return
 		}
 	}
@@ -98,7 +82,7 @@ func (h *EmailHandler) UpdateSMTPConfig(c *gin.Context) {
 	c.JSON(http.StatusOK, smtpConfig)
 }
 
-// TestSMTPConfig envoie un email de test
+// TestSMTPConfig envoie un email de test via OAuth
 func (h *EmailHandler) TestSMTPConfig(c *gin.Context) {
 	var req models.TestEmailRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -107,12 +91,12 @@ func (h *EmailHandler) TestSMTPConfig(c *gin.Context) {
 		return
 	}
 
-	log.Printf("[Email] Test SMTP demandé pour: %s", req.ToEmail)
+	log.Printf("[Email] Test email OAuth demandé pour: %s", req.ToEmail)
 
 	var smtpConfig models.SMTPConfig
-	if err := h.db.First(&smtpConfig).Error; err != nil {
-		log.Printf("[Email] Configuration SMTP non trouvée: %v", err)
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Configuration SMTP non trouvée. Veuillez d'abord configurer le serveur SMTP."})
+	if err := h.db.Preload("EmailOAuthConfig").First(&smtpConfig).Error; err != nil {
+		log.Printf("[Email] Configuration email non trouvée: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Configuration email non trouvée. Veuillez d'abord configurer OAuth."})
 		return
 	}
 
@@ -130,7 +114,7 @@ func (h *EmailHandler) TestSMTPConfig(c *gin.Context) {
 	smtpConfig.LastTestSuccess = true
 	h.db.Save(&smtpConfig)
 
-	c.JSON(http.StatusOK, gin.H{"message": "Email de test envoyé avec succès"})
+	c.JSON(http.StatusOK, gin.H{"message": "Email de test envoyé avec succès via OAuth"})
 }
 
 // GetEmailTemplates retourne tous les templates d'email

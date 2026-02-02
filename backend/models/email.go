@@ -4,18 +4,20 @@ import (
 	"time"
 )
 
-// SMTPConfig stocke la configuration du serveur SMTP
+// SMTPConfig stocke la configuration email (OAuth 2.0 uniquement)
+// Note: Les champs SMTP legacy (Host, Port, Username, Password, UseTLS, UseSTARTTLS) sont conservés
+// pour la compatibilité DB mais ne sont plus utilisés. L'envoi se fait via Microsoft Graph API.
 type SMTPConfig struct {
 	ID              uint       `json:"id" gorm:"primaryKey"`
-	Host            string     `json:"host" gorm:"not null"`
-	Port            int        `json:"port" gorm:"default:587"`
-	Username        string     `json:"username"`
-	Password        string     `json:"-" gorm:"type:text"` // Chiffré, jamais exposé en JSON
+	Host            string     `json:"host,omitempty"`                   // Obsolète - conservé pour compatibilité
+	Port            int        `json:"port,omitempty" gorm:"default:587"` // Obsolète - conservé pour compatibilité
+	Username        string     `json:"username,omitempty"`               // Obsolète - conservé pour compatibilité
+	Password        string     `json:"-" gorm:"type:text"`               // Obsolète - conservé pour compatibilité
 	FromEmail       string     `json:"from_email" gorm:"not null"`
 	FromName        string     `json:"from_name" gorm:"default:'Airboard'"`
-	UseTLS          bool       `json:"use_tls" gorm:"default:true"`
-	UseSTARTTLS     bool       `json:"use_starttls" gorm:"default:true"`
-	UseOAuth        bool       `json:"use_oauth" gorm:"default:false"` // Use OAuth instead of password
+	UseTLS          bool       `json:"use_tls,omitempty"`                // Obsolète - conservé pour compatibilité
+	UseSTARTTLS     bool       `json:"use_starttls,omitempty"`           // Obsolète - conservé pour compatibilité
+	UseOAuth        bool       `json:"use_oauth" gorm:"default:true"`    // Toujours true maintenant
 	IsEnabled       bool       `json:"is_enabled" gorm:"default:false"`
 	LastTestedAt    *time.Time `json:"last_tested_at"`
 	LastTestSuccess bool       `json:"last_test_success" gorm:"default:false"`
@@ -88,17 +90,12 @@ type EmailNotificationLog struct {
 	CreatedAt      time.Time  `json:"created_at"`
 }
 
-// SMTPConfigRequest pour la création/modification de la config SMTP
+// SMTPConfigRequest pour la création/modification de la config email
+// Simplifié pour OAuth uniquement
 type SMTPConfigRequest struct {
-	Host        string `json:"host" binding:"required"`
-	Port        int    `json:"port" binding:"required,min=1,max=65535"`
-	Username    string `json:"username"`
-	Password    string `json:"password"` // Vide = garder l'existant
-	FromEmail   string `json:"from_email" binding:"required,email"`
-	FromName    string `json:"from_name"`
-	UseTLS      bool   `json:"use_tls"`
-	UseSTARTTLS bool   `json:"use_starttls"`
-	IsEnabled   bool   `json:"is_enabled"`
+	FromEmail string `json:"from_email" binding:"required,email"`
+	FromName  string `json:"from_name"`
+	IsEnabled bool   `json:"is_enabled"`
 }
 
 // EmailTemplateRequest pour la modification d'un template

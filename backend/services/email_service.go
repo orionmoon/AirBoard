@@ -5,7 +5,6 @@ import (
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/rand"
-	"crypto/tls"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -13,7 +12,6 @@ import (
 	"io"
 	"log"
 	"net/http"
-	"net/smtp"
 	"strings"
 	"time"
 
@@ -22,34 +20,6 @@ import (
 
 	"gorm.io/gorm"
 )
-
-// xoauth2Auth implements XOAUTH2 SASL authentication for OAuth 2.0 SMTP
-type xoauth2Auth struct {
-	username string
-	token    string
-}
-
-// Start begins XOAUTH2 authentication
-func (a *xoauth2Auth) Start(server *smtp.ServerInfo) (string, []byte, error) {
-	// XOAUTH2 auth string format: "user={username}\x01auth=Bearer {token}\x01\x01"
-	authString := fmt.Sprintf("user=%s\x01auth=Bearer %s\x01\x01", a.username, a.token)
-	log.Printf("[Email OAuth] XOAUTH2 auth for user: %s (token length: %d chars)", a.username, len(a.token))
-	return "XOAUTH2", []byte(authString), nil
-}
-
-// Next handles server challenges (XOAUTH2 typically doesn't have challenges)
-func (a *xoauth2Auth) Next(fromServer []byte, more bool) ([]byte, error) {
-	if more {
-		// XOAUTH2 should not have challenges, but if it does, return empty
-		return []byte(""), nil
-	}
-	return nil, nil
-}
-
-// XOAUTH2 creates an smtp.Auth that uses XOAUTH2 authentication
-func XOAUTH2(username, token string) smtp.Auth {
-	return &xoauth2Auth{username, token}
-}
 
 // EmailService gère l'envoi des emails
 type EmailService struct {
@@ -116,13 +86,13 @@ func (s *EmailService) SendNotification(templateType string, contentID uint, tar
 		return nil
 	}
 
-	// Log du mode d'authentification utilisé
-	if smtpConfig.UseOAuth && smtpConfig.EmailOAuthConfig != nil && smtpConfig.EmailOAuthConfig.IsEnabled {
-		log.Printf("[Email] Mode OAuth 2.0 activé (provider: %s, grant: %s)",
-			smtpConfig.EmailOAuthConfig.Provider, smtpConfig.EmailOAuthConfig.GrantType)
-	} else {
-		log.Printf("[Email] Mode SMTP classique (password)")
+	// Vérifier que OAuth est configuré
+	if smtpConfig.EmailOAuthConfig == nil || !smtpConfig.EmailOAuthConfig.IsEnabled {
+		log.Printf("[Email] OAuth non configuré ou désactivé")
+		return fmt.Errorf("OAuth non configuré. Veuillez configurer OAuth 2.0 dans les paramètres email")
 	}
+	log.Printf("[Email] Mode OAuth 2.0 (provider: %s, grant: %s)",
+		smtpConfig.EmailOAuthConfig.Provider, smtpConfig.EmailOAuthConfig.GrantType)
 
 	// Récupérer le template
 	var emailTemplate models.EmailTemplate
@@ -327,62 +297,19 @@ func (s *EmailService) ExecuteTemplate(templateStr string, data interface{}) (st
 	return buf.String(), nil
 }
 
-// sendEmail envoie un email via SMTP (routage OAuth ou Password)
+// sendEmail envoie un email via OAuth 2.0 (Microsoft Graph API)
 func (s *EmailService) sendEmail(config *models.SMTPConfig, to, subject, htmlBody string) error {
-	// Check if OAuth is enabled and configured
-	if config.UseOAuth && config.EmailOAuthConfig != nil && config.EmailOAuthConfig.IsEnabled {
-		log.Printf("[Email] Using OAuth 2.0 authentication for %s", to)
-		return s.SendEmailWithOAuth(config, to, subject, htmlBody)
+	// Vérifier que OAuth est configuré
+	if config.EmailOAuthConfig == nil || !config.EmailOAuthConfig.IsEnabled {
+		return fmt.Errorf("OAuth non configuré ou désactivé. Veuillez configurer OAuth 2.0 dans les paramètres email")
 	}
 
-	// Fall back to password-based authentication
-	log.Printf("[Email] Using password authentication for %s", to)
-	return s.sendEmailWithPassword(config, to, subject, htmlBody)
+	log.Printf("[Email] Envoi via OAuth 2.0 (Microsoft Graph API) à %s", to)
+	return s.SendEmailWithOAuth(config, to, subject, htmlBody)
 }
 
-// sendEmailWithPassword envoie un email via authentification mot de passe (méthode classique)
-func (s *EmailService) sendEmailWithPassword(config *models.SMTPConfig, to, subject, htmlBody string) error {
-	// Déchiffrer le mot de passe
-	password, err := s.DecryptPassword(config.Password)
-	if err != nil {
-		return fmt.Errorf("erreur déchiffrement mot de passe: %w", err)
-	}
 
-	// Construire le message
-	headers := make(map[string]string)
-	headers["From"] = fmt.Sprintf("%s <%s>", config.FromName, config.FromEmail)
-	headers["To"] = to
-	headers["Subject"] = subject
-	headers["MIME-Version"] = "1.0"
-	headers["Content-Type"] = "text/html; charset=UTF-8"
-
-	var msg bytes.Buffer
-	for k, v := range headers {
-		msg.WriteString(fmt.Sprintf("%s: %s\r\n", k, v))
-	}
-	msg.WriteString("\r\n")
-	msg.WriteString(htmlBody)
-
-	// Envoyer via SMTP
-	addr := fmt.Sprintf("%s:%d", config.Host, config.Port)
-
-	if config.UseTLS {
-		return s.sendEmailTLS(addr, config.Username, password, config.FromEmail, to, msg.Bytes(), config.Host)
-	} else if config.UseSTARTTLS {
-		return s.sendEmailSTARTTLS(addr, config.Username, password, config.FromEmail, to, msg.Bytes(), config.Host)
-	}
-
-	// Envoi simple sans TLS
-	var auth smtp.Auth
-	if config.Username != "" && password != "" {
-		auth = smtp.PlainAuth("", config.Username, password, config.Host)
-	}
-	return smtp.SendMail(addr, auth, config.FromEmail, []string{to}, msg.Bytes())
-}
-
-// SendEmailWithOAuth envoie un email via OAuth 2.0
-// Pour Microsoft 365: utilise Microsoft Graph API (seule méthode supportée avec client credentials)
-// Pour d'autres providers: utilise XOAUTH2 SMTP
+// SendEmailWithOAuth envoie un email via OAuth 2.0 Microsoft Graph API
 func (s *EmailService) SendEmailWithOAuth(config *models.SMTPConfig, to, subject, htmlBody string) error {
 	if config.EmailOAuthConfig == nil {
 		return fmt.Errorf("OAuth config not found")
@@ -395,16 +322,8 @@ func (s *EmailService) SendEmailWithOAuth(config *models.SMTPConfig, to, subject
 		return fmt.Errorf("failed to get OAuth token: %w", err)
 	}
 
-	log.Printf("[Email OAuth] Token acquis, envoi email à %s", to)
-
-	// Pour Microsoft 365 avec client_credentials, utiliser Microsoft Graph API
-	// SMTP AUTH avec OAuth ne fonctionne PAS avec client credentials flow
-	if config.EmailOAuthConfig.Provider == "microsoft" && config.EmailOAuthConfig.GrantType == "client_credentials" {
-		return s.sendEmailViaGraphAPI(config, accessToken, to, subject, htmlBody)
-	}
-
-	// Pour les autres cas (refresh_token flow ou autres providers), utiliser SMTP XOAUTH2
-	return s.sendEmailViaSMTPOAuth(config, accessToken, to, subject, htmlBody)
+	log.Printf("[Email OAuth] Token acquis, envoi email à %s via Microsoft Graph API", to)
+	return s.sendEmailViaGraphAPI(config, accessToken, to, subject, htmlBody)
 }
 
 // sendEmailViaGraphAPI envoie un email via Microsoft Graph API
@@ -471,305 +390,15 @@ func (s *EmailService) sendEmailViaGraphAPI(config *models.SMTPConfig, accessTok
 	return nil
 }
 
-// sendEmailViaSMTPOAuth envoie un email via SMTP avec XOAUTH2
-// Utilisé pour refresh_token flow ou providers non-Microsoft
-func (s *EmailService) sendEmailViaSMTPOAuth(config *models.SMTPConfig, accessToken, to, subject, htmlBody string) error {
-	// Construire le message
-	headers := make(map[string]string)
-	headers["From"] = fmt.Sprintf("%s <%s>", config.FromName, config.FromEmail)
-	headers["To"] = to
-	headers["Subject"] = subject
-	headers["MIME-Version"] = "1.0"
-	headers["Content-Type"] = "text/html; charset=UTF-8"
 
-	var msg bytes.Buffer
-	for k, v := range headers {
-		msg.WriteString(fmt.Sprintf("%s: %s\r\n", k, v))
-	}
-	msg.WriteString("\r\n")
-	msg.WriteString(htmlBody)
 
-	// Envoyer via SMTP avec XOAUTH2
-	addr := fmt.Sprintf("%s:%d", config.Host, config.Port)
-
-	if config.UseSTARTTLS || config.Port == 587 {
-		return s.sendEmailOAuthSTARTTLS(addr, config.FromEmail, accessToken, to, msg.Bytes(), config.Host)
-	} else if config.UseTLS || config.Port == 465 {
-		return s.sendEmailOAuthTLS(addr, config.FromEmail, accessToken, to, msg.Bytes(), config.Host)
-	}
-
-	// Par défaut, utiliser STARTTLS (recommandé pour OAuth)
-	return s.sendEmailOAuthSTARTTLS(addr, config.FromEmail, accessToken, to, msg.Bytes(), config.Host)
-}
-
-// sendEmailOAuthSTARTTLS envoie un email via STARTTLS avec XOAUTH2
-func (s *EmailService) sendEmailOAuthSTARTTLS(addr, from, token, to string, msg []byte, host string) error {
-	// Connexion initiale non chiffrée
-	client, err := smtp.Dial(addr)
-	if err != nil {
-		return fmt.Errorf("erreur connexion SMTP: %w", err)
-	}
-	defer client.Close()
-
-	// Vérifier les capacités du serveur
-	if ok, _ := client.Extension("STARTTLS"); !ok {
-		return fmt.Errorf("STARTTLS non supporté par le serveur")
-	}
-
-	// Upgrade vers TLS via STARTTLS
-	tlsConfig := &tls.Config{
-		ServerName:         host,
-		InsecureSkipVerify: false,
-		MinVersion:         tls.VersionTLS12,
-	}
-
-	if err := client.StartTLS(tlsConfig); err != nil {
-		return fmt.Errorf("erreur STARTTLS: %w", err)
-	}
-
-	// Authentification XOAUTH2
-	auth := XOAUTH2(from, token)
-	if err := client.Auth(auth); err != nil {
-		return fmt.Errorf("erreur authentification XOAUTH2: %w", err)
-	}
-
-	log.Printf("[Email OAuth] Authentification XOAUTH2 réussie")
-
-	if err := client.Mail(from); err != nil {
-		return fmt.Errorf("erreur MAIL FROM: %w", err)
-	}
-
-	if err := client.Rcpt(to); err != nil {
-		return fmt.Errorf("erreur RCPT TO: %w", err)
-	}
-
-	w, err := client.Data()
-	if err != nil {
-		return fmt.Errorf("erreur DATA: %w", err)
-	}
-
-	_, err = w.Write(msg)
-	if err != nil {
-		return fmt.Errorf("erreur écriture message: %w", err)
-	}
-
-	err = w.Close()
-	if err != nil {
-		return fmt.Errorf("erreur fermeture DATA: %w", err)
-	}
-
-	log.Printf("[Email OAuth] Email envoyé avec succès à %s", to)
-	return client.Quit()
-}
-
-// sendEmailOAuthTLS envoie un email via TLS direct avec XOAUTH2
-func (s *EmailService) sendEmailOAuthTLS(addr, from, token, to string, msg []byte, host string) error {
-	tlsConfig := &tls.Config{
-		ServerName:         host,
-		InsecureSkipVerify: false,
-	}
-
-	conn, err := tls.Dial("tcp", addr, tlsConfig)
-	if err != nil {
-		return fmt.Errorf("erreur connexion TLS: %w", err)
-	}
-	defer conn.Close()
-
-	client, err := smtp.NewClient(conn, host)
-	if err != nil {
-		return fmt.Errorf("erreur création client SMTP: %w", err)
-	}
-	defer client.Close()
-
-	// Authentification XOAUTH2
-	auth := XOAUTH2(from, token)
-	if err := client.Auth(auth); err != nil {
-		return fmt.Errorf("erreur authentification XOAUTH2: %w", err)
-	}
-
-	log.Printf("[Email OAuth] Authentification XOAUTH2 réussie (TLS)")
-
-	if err := client.Mail(from); err != nil {
-		return fmt.Errorf("erreur MAIL FROM: %w", err)
-	}
-
-	if err := client.Rcpt(to); err != nil {
-		return fmt.Errorf("erreur RCPT TO: %w", err)
-	}
-
-	w, err := client.Data()
-	if err != nil {
-		return fmt.Errorf("erreur DATA: %w", err)
-	}
-
-	_, err = w.Write(msg)
-	if err != nil {
-		return fmt.Errorf("erreur écriture message: %w", err)
-	}
-
-	err = w.Close()
-	if err != nil {
-		return fmt.Errorf("erreur fermeture DATA: %w", err)
-	}
-
-	log.Printf("[Email OAuth] Email envoyé avec succès à %s (TLS)", to)
-	return client.Quit()
-}
-
-// sendEmailTLS envoie un email via TLS direct (port 465)
-func (s *EmailService) sendEmailTLS(addr, username, password, from, to string, msg []byte, host string) error {
-	tlsConfig := &tls.Config{
-		ServerName:         host,
-		InsecureSkipVerify: false,
-	}
-
-	conn, err := tls.Dial("tcp", addr, tlsConfig)
-	if err != nil {
-		return fmt.Errorf("erreur connexion TLS: %w", err)
-	}
-	defer conn.Close()
-
-	client, err := smtp.NewClient(conn, host)
-	if err != nil {
-		return fmt.Errorf("erreur création client SMTP: %w", err)
-	}
-	defer client.Close()
-
-	// Authentification si credentials fournis
-	if username != "" && password != "" {
-		auth := smtp.PlainAuth("", username, password, host)
-		if err := client.Auth(auth); err != nil {
-			return fmt.Errorf("erreur authentification: %w", err)
-		}
-	}
-
-	if err := client.Mail(from); err != nil {
-		return fmt.Errorf("erreur MAIL FROM: %w", err)
-	}
-
-	if err := client.Rcpt(to); err != nil {
-		return fmt.Errorf("erreur RCPT TO: %w", err)
-	}
-
-	w, err := client.Data()
-	if err != nil {
-		return fmt.Errorf("erreur DATA: %w", err)
-	}
-
-	_, err = w.Write(msg)
-	if err != nil {
-		return fmt.Errorf("erreur écriture message: %w", err)
-	}
-
-	err = w.Close()
-	if err != nil {
-		return fmt.Errorf("erreur fermeture DATA: %w", err)
-	}
-
-	return client.Quit()
-}
-
-// sendEmailSTARTTLS envoie un email via STARTTLS (port 587)
-func (s *EmailService) sendEmailSTARTTLS(addr, username, password, from, to string, msg []byte, host string) error {
-	// Connexion initiale non chiffrée
-	client, err := smtp.Dial(addr)
-	if err != nil {
-		return fmt.Errorf("erreur connexion SMTP: %w", err)
-	}
-	defer client.Close()
-
-	// Vérifier les capacités du serveur
-	if ok, _ := client.Extension("STARTTLS"); !ok {
-		return fmt.Errorf("STARTTLS non supporté par le serveur")
-	}
-
-	// Upgrade vers TLS via STARTTLS avec configuration appropriée
-	tlsConfig := &tls.Config{
-		ServerName:         host,
-		InsecureSkipVerify: false,
-		MinVersion:         tls.VersionTLS12,
-	}
-
-	if err := client.StartTLS(tlsConfig); err != nil {
-		return fmt.Errorf("erreur STARTTLS: %w", err)
-	}
-
-	// Authentification avec support Office365
-	if username != "" && password != "" {
-		// Office365 peut avoir des problèmes avec PlainAuth, essayer plusieurs méthodes
-
-		// Méthode 1: Plain Auth standard avec le hostname complet
-		auth := smtp.PlainAuth("", username, password, host)
-		if err := client.Auth(auth); err == nil {
-			log.Printf("[Email] Authentification réussie avec PlainAuth")
-		} else {
-			// Méthode 2: Essayer avec juste le nom de domaine
-			log.Printf("[Email] PlainAuth échoué: %v, tentative avec domaine", err)
-
-			// Pour Office365, sometimes we need just the domain part
-			hostWithoutPort := strings.Split(host, ":")[0]
-			auth2 := smtp.PlainAuth("", username, password, hostWithoutPort)
-			if err2 := client.Auth(auth2); err2 == nil {
-				log.Printf("[Email] Authentification réussie avec domaine: %s", hostWithoutPort)
-			} else {
-				// Méthode 3: Essayer avec le domaine racine
-				hostParts := strings.Split(hostWithoutPort, ".")
-				if len(hostParts) >= 2 {
-					domain := strings.Join(hostParts[len(hostParts)-2:], ".")
-					auth3 := smtp.PlainAuth("", username, password, domain)
-					if err3 := client.Auth(auth3); err3 == nil {
-						log.Printf("[Email] Authentification réussie avec domaine racine: %s", domain)
-					} else {
-						// Toutes les méthodes ont échoué
-						log.Printf("[Email] Toutes les méthodes d'authentification ont échoué")
-						log.Printf("[Email] Erreurs: %v, %v, %v", err, err2, err3)
-
-						// Fournir un message d'erreur détaillé avec instructions
-						return fmt.Errorf("authentification Office365 échouée. Causes possibles: \n1) L'authentification de base est désactivée dans votre tenant Office365 \n2) Le compte nécessite l'authentification moderne (OAuth2) \n3) Les credentials sont incorrects \n\nSolution: Activez l'authentification de base dans Azure Portal > Azure Active Directory > Propriétés > Gérer l'accès conditional > Authentification de base")
-					}
-				} else {
-					// Format hostname invalide
-					return fmt.Errorf("format hostname invalide: %s", host)
-				}
-			}
-		}
-	}
-
-	if err := client.Mail(from); err != nil {
-		return fmt.Errorf("erreur MAIL FROM: %w", err)
-	}
-
-	if err := client.Rcpt(to); err != nil {
-		return fmt.Errorf("erreur RCPT TO: %w", err)
-	}
-
-	w, err := client.Data()
-	if err != nil {
-		return fmt.Errorf("erreur DATA: %w", err)
-	}
-
-	_, err = w.Write(msg)
-	if err != nil {
-		return fmt.Errorf("erreur écriture message: %w", err)
-	}
-
-	err = w.Close()
-	if err != nil {
-		return fmt.Errorf("erreur fermeture DATA: %w", err)
-	}
-
-	return client.Quit()
-}
-
-// TestConnection teste la connexion SMTP avec un email de test
+// TestConnection teste la connexion OAuth avec un email de test
 func (s *EmailService) TestConnection(smtpConfig *models.SMTPConfig, testEmail string) error {
-	log.Printf("[Email] TestConnection appelé - Destinataire: %s, Host: %s, Port: %d, UseTLS: %v, UseSTARTTLS: %v",
-		testEmail, smtpConfig.Host, smtpConfig.Port, smtpConfig.UseTLS, smtpConfig.UseSTARTTLS)
+	log.Printf("[Email] TestConnection OAuth appelé - Destinataire: %s", testEmail)
 
-	password, err := s.DecryptPassword(smtpConfig.Password)
-	if err != nil {
-		log.Printf("[Email] Erreur déchiffrement mot de passe: %v", err)
-		return fmt.Errorf("erreur déchiffrement mot de passe: %w", err)
+	// Vérifier que OAuth est configuré
+	if smtpConfig.EmailOAuthConfig == nil || !smtpConfig.EmailOAuthConfig.IsEnabled {
+		return fmt.Errorf("OAuth non configuré ou désactivé. Veuillez configurer OAuth 2.0")
 	}
 
 	// Récupérer le nom de l'application
@@ -782,7 +411,7 @@ func (s *EmailService) TestConnection(smtpConfig *models.SMTPConfig, testEmail s
 		appName = "Airboard"
 	}
 
-	testSubject := fmt.Sprintf("%s - Email de test", appName)
+	testSubject := fmt.Sprintf("%s - Email de test OAuth", appName)
 	testBody := fmt.Sprintf(`<!DOCTYPE html>
 <html>
 <head>
@@ -794,6 +423,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial
 .header h1 { margin: 0; font-size: 24px; }
 .content { padding: 30px; text-align: center; }
 .success-icon { font-size: 48px; margin-bottom: 20px; }
+.badge { display: inline-block; background: #dcfce7; color: #166534; padding: 8px 16px; border-radius: 8px; font-weight: 600; margin: 10px 0; }
 .footer { background: #f8fafc; padding: 20px; text-align: center; color: #6b7280; font-size: 12px; }
 </style>
 </head>
@@ -804,70 +434,25 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial
 </div>
 <div class="content">
 <div class="success-icon">✅</div>
-<h2>Configuration SMTP réussie !</h2>
-<p>Cet email confirme que votre configuration SMTP est correcte.</p>
-<p>Les notifications email fonctionneront correctement.</p>
-<p><strong>Serveur:</strong> %s<br>
-<strong>Port:</strong> %d<br>
-<strong>Sécurité:</strong> %s</p>
+<h2>Configuration OAuth réussie !</h2>
+<p>Cet email confirme que votre configuration OAuth 2.0 est correcte.</p>
+<p>Les notifications email fonctionneront correctement via Microsoft Graph API.</p>
+<div class="badge">🔐 OAuth 2.0 - Microsoft Graph API</div>
 </div>
 <div class="footer">
 <p>Email de test envoyé le %s</p>
 </div>
 </div>
 </body>
-</html>`, appName, smtpConfig.Host, smtpConfig.Port,
-		func() string {
-			if smtpConfig.UseTLS {
-				return "TLS (port 465)"
-			} else if smtpConfig.UseSTARTTLS {
-				return "STARTTLS (port 587)"
-			}
-			return "Aucune"
-		}(), time.Now().Format("02/01/2006 à 15:04"))
+</html>`, appName, time.Now().Format("02/01/2006 à 15:04"))
 
-	// Construire le message
-	headers := make(map[string]string)
-	headers["From"] = fmt.Sprintf("%s <%s>", smtpConfig.FromName, smtpConfig.FromEmail)
-	headers["To"] = testEmail
-	headers["Subject"] = testSubject
-	headers["MIME-Version"] = "1.0"
-	headers["Content-Type"] = "text/html; charset=UTF-8"
-
-	var msg bytes.Buffer
-	for k, v := range headers {
-		msg.WriteString(fmt.Sprintf("%s: %s\r\n", k, v))
-	}
-	msg.WriteString("\r\n")
-	msg.WriteString(testBody)
-
-	// Envoyer via SMTP
-	addr := fmt.Sprintf("%s:%d", smtpConfig.Host, smtpConfig.Port)
-	log.Printf("[Email] Tentative d'envoi vers %s via %s", testEmail, addr)
-
-	var sendErr error
-	if smtpConfig.UseTLS {
-		log.Printf("[Email] Utilisation de TLS direct (port 465)")
-		sendErr = s.sendEmailTLS(addr, smtpConfig.Username, password, smtpConfig.FromEmail, testEmail, msg.Bytes(), smtpConfig.Host)
-	} else if smtpConfig.UseSTARTTLS {
-		log.Printf("[Email] Utilisation de STARTTLS (port 587)")
-		sendErr = s.sendEmailSTARTTLS(addr, smtpConfig.Username, password, smtpConfig.FromEmail, testEmail, msg.Bytes(), smtpConfig.Host)
-	} else {
-		log.Printf("[Email] Utilisation de connexion non sécurisée")
-		// Envoi simple sans TLS
-		var auth smtp.Auth
-		if smtpConfig.Username != "" && password != "" {
-			auth = smtp.PlainAuth("", smtpConfig.Username, password, smtpConfig.Host)
-		}
-		sendErr = smtp.SendMail(addr, auth, smtpConfig.FromEmail, []string{testEmail}, msg.Bytes())
+	// Envoyer via OAuth (Microsoft Graph API)
+	if err := s.SendEmailWithOAuth(smtpConfig, testEmail, testSubject, testBody); err != nil {
+		log.Printf("[Email] Échec envoi email de test OAuth: %v", err)
+		return err
 	}
 
-	if sendErr != nil {
-		log.Printf("[Email] Échec envoi email de test: %v", sendErr)
-		return sendErr
-	}
-
-	log.Printf("[Email] Email de test envoyé avec succès à %s", testEmail)
+	log.Printf("[Email] Email de test OAuth envoyé avec succès à %s", testEmail)
 	return nil
 }
 
