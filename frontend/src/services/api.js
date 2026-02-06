@@ -955,6 +955,12 @@ export const emailService = {
   async refreshOAuthToken() {
     const response = await api.post('/admin/email/oauth/refresh')
     return response.data
+  },
+
+  // Health Status (diagnostic)
+  async getHealthStatus() {
+    const response = await api.get('/admin/email/health')
+    return response.data
   }
 }
 

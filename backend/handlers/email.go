@@ -555,3 +555,108 @@ func (h *EmailHandler) RefreshOAuthToken(c *gin.Context) {
 	log.Printf("[Email OAuth] Token rafraîchi avec succès")
 	c.JSON(http.StatusOK, gin.H{"message": "Token rafraîchi avec succès"})
 }
+
+// GetEmailHealthStatus retourne le statut de santé du système email
+func (h *EmailHandler) GetEmailHealthStatus(c *gin.Context) {
+	status := gin.H{
+		"smtp_configured":     false,
+		"smtp_enabled":        false,
+		"oauth_configured":    false,
+		"oauth_enabled":       false,
+		"oauth_token_valid":   false,
+		"oauth_token_expires": nil,
+		"last_refresh_error":  "",
+		"templates_enabled":   map[string]bool{},
+		"recent_failures":     0,
+		"recent_successes":    0,
+	}
+
+	// Vérifier la configuration SMTP
+	var smtpConfig models.SMTPConfig
+	if err := h.db.Preload("EmailOAuthConfig").First(&smtpConfig).Error; err == nil {
+		status["smtp_configured"] = true
+		status["smtp_enabled"] = smtpConfig.IsEnabled
+		status["from_email"] = smtpConfig.FromEmail
+
+		// Vérifier OAuth
+		if smtpConfig.EmailOAuthConfig != nil {
+			status["oauth_configured"] = true
+			status["oauth_enabled"] = smtpConfig.EmailOAuthConfig.IsEnabled
+			status["oauth_provider"] = smtpConfig.EmailOAuthConfig.Provider
+			status["oauth_grant_type"] = smtpConfig.EmailOAuthConfig.GrantType
+
+			// Vérifier validité du token
+			if smtpConfig.EmailOAuthConfig.ExpiresAt != nil {
+				status["oauth_token_expires"] = smtpConfig.EmailOAuthConfig.ExpiresAt
+				if smtpConfig.EmailOAuthConfig.ExpiresAt.After(time.Now()) {
+					status["oauth_token_valid"] = true
+				}
+			}
+
+			// Dernière erreur de refresh
+			if smtpConfig.EmailOAuthConfig.LastRefreshError != "" {
+				status["last_refresh_error"] = smtpConfig.EmailOAuthConfig.LastRefreshError
+			}
+
+			// Dernière tentative de refresh
+			if smtpConfig.EmailOAuthConfig.LastTokenRefresh != nil {
+				status["last_token_refresh"] = smtpConfig.EmailOAuthConfig.LastTokenRefresh
+			}
+		}
+	}
+
+	// Vérifier les templates activés
+	var templates []models.EmailTemplate
+	if err := h.db.Find(&templates).Error; err == nil {
+		templatesEnabled := make(map[string]bool)
+		for _, t := range templates {
+			templatesEnabled[t.Type] = t.IsEnabled
+		}
+		status["templates_enabled"] = templatesEnabled
+	}
+
+	// Compter les échecs/succès récents (dernières 24h)
+	yesterday := time.Now().Add(-24 * time.Hour)
+	var recentLogs []models.EmailNotificationLog
+	if err := h.db.Where("created_at > ?", yesterday).Find(&recentLogs).Error; err == nil {
+		failures := 0
+		successes := 0
+		for _, l := range recentLogs {
+			if l.Status == "failed" {
+				failures++
+			} else if l.Status == "completed" {
+				successes++
+			}
+		}
+		status["recent_failures"] = failures
+		status["recent_successes"] = successes
+	}
+
+	// Déterminer le statut global
+	healthy := false
+	if smtpConfig.IsEnabled && smtpConfig.EmailOAuthConfig != nil &&
+		smtpConfig.EmailOAuthConfig.IsEnabled &&
+		status["oauth_token_valid"].(bool) {
+		healthy = true
+	}
+	status["healthy"] = healthy
+
+	// Message de diagnostic
+	if !status["smtp_configured"].(bool) {
+		status["diagnostic"] = "Configuration SMTP non trouvée"
+	} else if !status["smtp_enabled"].(bool) {
+		status["diagnostic"] = "SMTP désactivé - les notifications email ne seront pas envoyées"
+	} else if !status["oauth_configured"].(bool) {
+		status["diagnostic"] = "OAuth non configuré"
+	} else if !status["oauth_enabled"].(bool) {
+		status["diagnostic"] = "OAuth désactivé"
+	} else if !status["oauth_token_valid"].(bool) {
+		status["diagnostic"] = "Token OAuth expiré ou invalide - tentez un rafraîchissement"
+	} else if status["last_refresh_error"].(string) != "" {
+		status["diagnostic"] = "Dernière erreur: " + status["last_refresh_error"].(string)
+	} else {
+		status["diagnostic"] = "Système email opérationnel"
+	}
+
+	c.JSON(http.StatusOK, status)
+}

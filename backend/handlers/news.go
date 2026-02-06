@@ -18,11 +18,12 @@ import (
 )
 
 type NewsHandler struct {
-	db *gorm.DB
+	db     *gorm.DB
+	config *config.Config
 }
 
-func NewNewsHandler(db *gorm.DB) *NewsHandler {
-	return &NewsHandler{db: db}
+func NewNewsHandler(db *gorm.DB, cfg *config.Config) *NewsHandler {
+	return &NewsHandler{db: db, config: cfg}
 }
 
 // GetNews - Liste des news (accessible à tous les utilisateurs connectés)
@@ -417,13 +418,18 @@ func (h *NewsHandler) CreateNews(c *gin.Context) {
 	// Envoyer une notification email si l'article est publié
 	if news.IsPublished {
 		go func() {
-			emailService := services.NewEmailService(h.db, config.LoadConfig())
+			log.Printf("[Email] Tentative d'envoi de notification pour news ID=%d, titre='%s'", news.ID, news.Title)
+			// Utiliser la configuration stockée pour éviter de régénérer le secret JWT
+			emailService := services.NewEmailService(h.db, h.config)
 			var targetGroupIDs []uint
 			for _, g := range news.TargetGroups {
 				targetGroupIDs = append(targetGroupIDs, g.ID)
 			}
+			log.Printf("[Email] Groupes cibles pour news %d: %v", news.ID, targetGroupIDs)
 			if err := emailService.SendNotification("news", news.ID, targetGroupIDs); err != nil {
-				log.Printf("[Email] Échec de l'envoi de la notification news: %v", err)
+				log.Printf("[Email] ❌ ÉCHEC notification news ID=%d: %v", news.ID, err)
+			} else {
+				log.Printf("[Email] ✅ Notification envoyée avec succès pour news ID=%d", news.ID)
 			}
 		}()
 

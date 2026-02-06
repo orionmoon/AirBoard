@@ -293,5 +293,13 @@ func (s *EmailOAuthService) DecryptToken(encrypted string) (string, error) {
 	stream := cipher.NewCFBDecrypter(block, iv)
 	stream.XORKeyStream(ciphertext, ciphertext)
 
-	return string(ciphertext), nil
+	// Nettoyer le token des caractères invalides pour les headers HTTP
+	// (newlines, carriage returns, etc.)
+	token := string(ciphertext)
+	token = strings.TrimSpace(token)
+	token = strings.ReplaceAll(token, "\n", "")
+	token = strings.ReplaceAll(token, "\r", "")
+	token = strings.ReplaceAll(token, "\t", "")
+
+	return token, nil
 }

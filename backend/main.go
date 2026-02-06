@@ -160,7 +160,7 @@ func main() {
 	favoritesHandler := handlers.NewFavoritesHandler(db)
 	analyticsHandler := handlers.NewAnalyticsHandler(db)
 	announcementHandler := handlers.NewAnnouncementHandler(db)
-	newsHandler := handlers.NewNewsHandler(db)
+	newsHandler := handlers.NewNewsHandler(db, cfg)
 	eventsHandler := handlers.NewEventsHandler(db)
 	homeHandler := handlers.NewHomeHandler(db)
 	versionHandler := handlers.NewVersionHandler()
@@ -491,6 +491,7 @@ func main() {
 			admin.PUT("/email/oauth", emailHandler.UpdateOAuthConfig)
 			admin.POST("/email/oauth/test", emailHandler.TestOAuthConnection)
 			admin.POST("/email/oauth/refresh", emailHandler.RefreshOAuthToken)
+			admin.GET("/email/health", emailHandler.GetEmailHealthStatus)
 
 			// Gestion des commentaires (modération - admin uniquement)
 			admin.GET("/comments/pending", commentHandler.GetPendingComments)     // Commentaires en attente
