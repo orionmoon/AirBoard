@@ -32,57 +32,126 @@
       <div class="flex flex-1 overflow-hidden h-full">
         <!-- Sidebar (Contacts) -->
         <div v-if="!isMobile || !chatStore.activeConversation" class="w-full md:w-1/3 border-r dark:border-gray-700 flex flex-col bg-gray-50 dark:bg-gray-800 h-full">
-           <!-- Search (Future) -->
-           <!-- <div class="p-2 border-b"><input ... ></div> -->
+           <!-- Search Bar -->
+           <div class="px-3 py-2 border-b dark:border-gray-700">
+              <div class="relative">
+                 <Icon icon="mdi:magnify" class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm" />
+                 <input 
+                   v-model="searchQuery" 
+                   type="text" 
+                   placeholder="Rechercher..." 
+                   class="w-full pl-8 pr-4 py-1.5 bg-gray-100 dark:bg-gray-700 border-none rounded-lg text-sm focus:ring-2 focus:ring-blue-500 text-gray-900 dark:text-white"
+                 >
+                 <button v-if="searchQuery" @click="searchQuery = ''" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                   <Icon icon="mdi:close-circle" class="text-xs" />
+                 </button>
+              </div>
+           </div>
            
            <div class="overflow-y-auto flex-1 p-2 space-y-2">
-              <div v-if="chatStore.contacts.groups.length > 0" class="mb-2">
-                <h3 class="text-xs font-bold text-gray-500 uppercase px-2 mb-1">Groupes</h3>
-                <div 
-                  v-for="group in chatStore.contacts.groups" 
-                  :key="group.id"
-                  @click="chatStore.openConversation('group', group)"
-                  class="flex items-center gap-2 p-2 rounded hover:bg-gray-200 dark:hover:bg-gray-700 cursor-pointer transition-colors"
-                  :class="{'bg-blue-100 dark:bg-blue-900/30': chatStore.activeConversation?.id === group.id && chatStore.activeConversation?.type === 'group'}"
-                >
-                   <div class="w-8 h-8 rounded bg-gray-300 dark:bg-gray-700 flex items-center justify-center text-gray-600 dark:text-gray-400">
-                     <Icon icon="mdi:account-group" />
-                   </div>
-                   <div class="flex-1 min-w-0">
-                     <div class="font-medium truncate">{{ group.name }}</div>
-                   </div>
-                   <span v-if="chatStore.unreadCounts['group_'+group.id]" class="bg-blue-500 text-white text-xs px-1.5 py-0.5 rounded-full">
-                     {{ chatStore.unreadCounts['group_'+group.id] }}
-                   </span>
-                </div>
-              </div>
+               <!-- 1. UNREAD SECTION (Always first if not empty) -->
+               <div v-if="hasUnreadUsers" class="mb-4">
+                 <h3 class="text-[10px] font-bold text-blue-500 uppercase px-2 mb-1 tracking-wider">Messages non lus</h3>
+                 <div v-for="user in unreadUsers" :key="'unread_'+user.id" 
+                      @click="chatStore.openConversation('user', user)"
+                      class="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 cursor-pointer transition-colors"
+                      :class="{'bg-blue-100 dark:bg-blue-900/40': chatStore.activeConversation?.id === user.id && chatStore.activeConversation?.type === 'user'}"
+                 >
+                    <div class="relative flex-shrink-0">
+                       <img 
+                         :src="user.avatar_url || `https://ui-avatars.com/api/?name=${user.first_name}+${user.last_name}&background=random`" 
+                         class="w-8 h-8 rounded-full object-cover"
+                       >
+                    </div>
+                    <div class="flex-1 min-w-0">
+                      <div class="font-medium text-sm truncate text-gray-900 dark:text-gray-100">{{ user.first_name }} {{ user.last_name }}</div>
+                      <div class="text-[10px] text-gray-500 dark:text-gray-400 truncate">{{ user.job_title }}</div>
+                    </div>
+                    <span v-if="chatStore.unreadCounts['user_'+user.id]" class="bg-blue-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">
+                      {{ chatStore.unreadCounts['user_'+user.id] }}
+                    </span>
+                 </div>
+               </div>
 
-              <div>
-                <h3 class="text-xs font-bold text-gray-500 uppercase px-2 mb-1">Utilisateurs</h3>
-                <div 
-                  v-for="user in chatStore.contacts.users" 
-                  :key="user.id"
-                  @click="chatStore.openConversation('user', user)"
-                  class="flex items-center gap-2 p-2 rounded hover:bg-gray-200 dark:hover:bg-gray-700 cursor-pointer transition-colors"
-                  :class="{'bg-blue-100 dark:bg-blue-900/30': chatStore.activeConversation?.id === user.id && chatStore.activeConversation?.type === 'user'}"
-                >
-                   <div class="relative">
-                      <img 
-                        :src="user.avatar_url || `https://ui-avatars.com/api/?name=${user.first_name}+${user.last_name}&background=random`" 
-                        class="w-8 h-8 rounded-full object-cover"
-                      >
-                      <!-- Online Status (Mocked for now or realized via WS) -->
-                      <!-- <span class="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 border-2 border-white rounded-full"></span> -->
-                   </div>
-                   <div class="flex-1 min-w-0">
-                     <div class="font-medium truncate text-gray-900 dark:text-gray-100">{{ user.first_name }} {{ user.last_name }}</div>
-                     <div class="text-xs text-gray-500 dark:text-gray-400 truncate">{{ user.job_title }}</div>
-                   </div>
-                   <span v-if="chatStore.unreadCounts['user_'+user.id]" class="bg-blue-500 text-white text-xs px-1.5 py-0.5 rounded-full">
-                     {{ chatStore.unreadCounts['user_'+user.id] }}
-                   </span>
-                </div>
-              </div>
+               <!-- 2. GROUPS -->
+               <div v-if="filteredGroups.length > 0" class="mb-4">
+                 <h3 class="text-[10px] font-bold text-gray-400 uppercase px-2 mb-1 tracking-wider">Groupes de discussion</h3>
+                 <div 
+                   v-for="group in filteredGroups" 
+                   :key="group.id"
+                   @click="chatStore.openConversation('group', group)"
+                   class="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 cursor-pointer transition-colors"
+                   :class="{'bg-blue-100 dark:bg-blue-900/40': chatStore.activeConversation?.id === group.id && chatStore.activeConversation?.type === 'group'}"
+                 >
+                    <div class="w-8 h-8 rounded bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-gray-500 dark:text-gray-400">
+                      <Icon icon="mdi:account-group" class="text-lg" />
+                    </div>
+                    <div class="flex-1 min-w-0">
+                      <div class="font-medium text-sm truncate text-gray-900 dark:text-gray-100">{{ group.name }}</div>
+                    </div>
+                    <span v-if="chatStore.unreadCounts['group_'+group.id]" class="bg-blue-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">
+                      {{ chatStore.unreadCounts['group_'+group.id] }}
+                    </span>
+                 </div>
+               </div>
+
+               <!-- 3. USERS BY APP GROUPS -->
+               <div v-for="(groupData, groupName) in groupedUsers" :key="groupName" class="mb-4">
+                 <h3 class="text-[10px] font-bold text-gray-400 uppercase px-2 mb-1 tracking-wider">{{ groupName }}</h3>
+                 <div 
+                   v-for="user in groupData.users" 
+                   :key="user.id"
+                   @click="chatStore.openConversation('user', user)"
+                   class="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 cursor-pointer transition-colors"
+                   :class="{'bg-blue-100 dark:bg-blue-900/40': chatStore.activeConversation?.id === user.id && chatStore.activeConversation?.type === 'user'}"
+                 >
+                    <div class="relative flex-shrink-0">
+                       <img 
+                         :src="user.avatar_url || `https://ui-avatars.com/api/?name=${user.first_name}+${user.last_name}&background=random`" 
+                         class="w-8 h-8 rounded-full object-cover"
+                       >
+                    </div>
+                    <div class="flex-1 min-w-0">
+                      <div class="font-medium text-sm truncate text-gray-900 dark:text-gray-100">{{ user.first_name }} {{ user.last_name }}</div>
+                      <div class="text-[10px] text-gray-500 dark:text-gray-400 truncate">{{ user.job_title }}</div>
+                    </div>
+                    <span v-if="chatStore.unreadCounts['user_'+user.id]" class="bg-blue-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">
+                      {{ chatStore.unreadCounts['user_'+user.id] }}
+                    </span>
+                 </div>
+               </div>
+
+               <!-- 4. OTHERS (Users without group) -->
+               <div v-if="otherUsers.length > 0" class="mb-2">
+                 <h3 class="text-[10px] font-bold text-gray-400 uppercase px-2 mb-1 tracking-wider">Autres contacts</h3>
+                 <div 
+                   v-for="user in otherUsers" 
+                   :key="user.id"
+                   @click="chatStore.openConversation('user', user)"
+                   class="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 cursor-pointer transition-colors"
+                   :class="{'bg-blue-100 dark:bg-blue-900/40': chatStore.activeConversation?.id === user.id && chatStore.activeConversation?.type === 'user'}"
+                 >
+                    <div class="relative flex-shrink-0">
+                       <img 
+                         :src="user.avatar_url || `https://ui-avatars.com/api/?name=${user.first_name}+${user.last_name}&background=random`" 
+                         class="w-8 h-8 rounded-full object-cover"
+                       >
+                    </div>
+                    <div class="flex-1 min-w-0">
+                      <div class="font-medium text-sm truncate text-gray-900 dark:text-gray-100">{{ user.first_name }} {{ user.last_name }}</div>
+                      <div class="text-[10px] text-gray-500 dark:text-gray-400 truncate">{{ user.job_title }}</div>
+                    </div>
+                    <span v-if="chatStore.unreadCounts['user_'+user.id]" class="bg-blue-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">
+                      {{ chatStore.unreadCounts['user_'+user.id] }}
+                    </span>
+                 </div>
+               </div>
+
+               <!-- Empty Search -->
+               <div v-if="filteredGroups.length === 0 && Object.keys(groupedUsers).length === 0 && otherUsers.length === 0" class="text-center py-8 text-gray-400 text-xs">
+                 <Icon icon="mdi:account-search" class="text-3xl mb-2 opacity-20" />
+                 <p>Aucun contact trouvé</p>
+               </div>
            </div>
         </div>
 
@@ -190,11 +259,56 @@ const authStore = useAuthStore();
 const { activeConversation, messages } = storeToRefs(chatStore);
 
 const newMessage = ref('');
+const searchQuery = ref('');
 const messagesContainer = ref(null);
 const isMobile = ref(window.innerWidth < 768);
 const showMenu = ref(false);
 
 const myId = computed(() => authStore.user?.id);
+
+// Filtering logic
+const filteredGroups = computed(() => {
+  if (!searchQuery.value) return chatStore.contacts.groups;
+  const q = searchQuery.value.toLowerCase();
+  return chatStore.contacts.groups.filter(g => g.name.toLowerCase().includes(q));
+});
+
+const filteredUsers = computed(() => {
+  let users = chatStore.contacts.users;
+  if (searchQuery.value) {
+    const q = searchQuery.value.toLowerCase();
+    users = users.filter(u => 
+      `${u.first_name} ${u.last_name}`.toLowerCase().includes(q) || 
+      u.username.toLowerCase().includes(q)
+    );
+  }
+  return users;
+});
+
+const unreadUsers = computed(() => {
+  return filteredUsers.value.filter(u => chatStore.unreadCounts[`user_${u.id}`] > 0);
+});
+
+const hasUnreadUsers = computed(() => unreadUsers.value.length > 0);
+
+const groupedUsers = computed(() => {
+  const groups = {};
+  filteredUsers.value.forEach(user => {
+    // If user has unread messages, we might show them in a special section already, 
+    // but here we group them by their actual application groups.
+    if (user.groups && user.groups.length > 0) {
+      user.groups.forEach(g => {
+        if (!groups[g.name]) groups[g.name] = { color: g.color, users: [] };
+        groups[g.name].users.push(user);
+      });
+    }
+  });
+  return groups;
+});
+
+const otherUsers = computed(() => {
+  return filteredUsers.value.filter(u => !u.groups || u.groups.length === 0);
+});
 
 const toggleMenu = () => {
   showMenu.value = !showMenu.value;

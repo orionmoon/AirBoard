@@ -73,6 +73,9 @@ func (h *ChatHandler) GetContacts(c *gin.Context) {
 	// For MVP: All active users
 	h.db.Where("id != ? AND is_active = ?", userID, true).
 		Select("id, username, first_name, last_name, avatar_url, role").
+		Preload("Groups", func(db *gorm.DB) *gorm.DB {
+			return db.Select("id, name, color")
+		}).
 		Find(&users)
 
 	// 2. Get user's groups
