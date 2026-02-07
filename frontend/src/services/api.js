@@ -1239,6 +1239,51 @@ export const pollsService = {
   }
 }
 
+// ===== Comments Service =====
+export const commentsService = {
+  // Public/Protected
+  async getComments(params = {}) {
+    const response = await api.get('/comments', { params })
+    return response.data
+  },
+
+  async createComment(data) {
+    const response = await api.post('/comments', data)
+    return response.data
+  },
+
+  async updateComment(id, data) {
+    const response = await api.put(`/comments/${id}`, data)
+    return response.data
+  },
+
+  async deleteComment(id) {
+    const response = await api.delete(`/comments/${id}`)
+    return response.data
+  },
+
+  async getSettings() {
+    const response = await api.get('/comments/settings')
+    return response.data
+  },
+
+  // Admin
+  async getPendingComments() {
+    const response = await api.get('/admin/comments/pending')
+    return response.data
+  },
+
+  async moderateComment(data) {
+    const response = await api.post('/admin/comments/moderate', data)
+    return response.data
+  },
+
+  async updateSettings(data) {
+    const response = await api.put('/admin/comments/settings', data)
+    return response.data
+  }
+}
+
 // ===== Media Service =====
 export const mediaService = {
   // Upload un fichier média (editor/admin de groupe/admin)

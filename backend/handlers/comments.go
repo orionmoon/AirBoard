@@ -3,6 +3,7 @@ package handlers
 import (
 	"airboard/middleware"
 	"airboard/models"
+	"airboard/services"
 	"net/http"
 	"strconv"
 	"time"
@@ -12,11 +13,15 @@ import (
 )
 
 type CommentHandler struct {
-	DB *gorm.DB
+	DB           *gorm.DB
+	Gamification *services.GamificationService
 }
 
-func NewCommentHandler(db *gorm.DB) *CommentHandler {
-	return &CommentHandler{DB: db}
+func NewCommentHandler(db *gorm.DB, gamification *services.GamificationService) *CommentHandler {
+	return &CommentHandler{
+		DB:           db,
+		Gamification: gamification,
+	}
 }
 
 // GetComments récupère tous les commentaires pour une entité (news, app, event)
@@ -210,6 +215,18 @@ func (h *CommentHandler) CreateComment(c *gin.Context) {
 			Code:    http.StatusInternalServerError,
 		})
 		return
+	}
+
+	// Accorder des points XP pour la création d'un commentaire
+	if h.Gamification != nil {
+		// 10 XP pour un commentaire
+		go func() {
+			err := h.Gamification.AwardXP(userID.(uint), 10, "comment_create", "{}")
+			if err != nil {
+				// Log error but don't fail request
+				println("Error awarding XP for comment:", err.Error())
+			}
+		}()
 	}
 
 	c.JSON(http.StatusCreated, models.SuccessResponse{

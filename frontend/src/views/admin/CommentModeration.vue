@@ -304,7 +304,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { Icon } from '@iconify/vue'
-import api from '@/services/api'
+import { commentsService } from '@/services/api'
 import { useI18n } from 'vue-i18n'
 
 const { t } = useI18n()
@@ -343,7 +343,7 @@ const formatDate = (dateString) => {
 const loadPendingComments = async () => {
   loading.value = true
   try {
-    const response = await api.getPendingComments()
+    const response = await commentsService.getPendingComments()
     pendingComments.value = response.comments || []
   } catch (error) {
     console.error('Erreur lors du chargement des commentaires en attente:', error)
@@ -354,7 +354,7 @@ const loadPendingComments = async () => {
 
 const loadSettings = async () => {
   try {
-    const response = await api.getCommentSettings()
+    const response = await commentsService.getSettings()
     settings.value = response
   } catch (error) {
     console.error('Erreur lors du chargement des paramètres:', error)
@@ -363,7 +363,7 @@ const loadSettings = async () => {
 
 const moderateComment = async (commentId, isApproved, isFlagged) => {
   try {
-    await api.moderateComment({
+    await commentsService.moderateComment({
       comment_id: commentId,
       is_approved: isApproved,
       is_flagged: isFlagged
@@ -379,7 +379,7 @@ const deleteComment = async (commentId) => {
   if (!confirm('Êtes-vous sûr de vouloir supprimer ce commentaire ?')) return
 
   try {
-    await api.deleteComment(commentId)
+    await commentsService.deleteComment(commentId)
     await loadPendingComments()
   } catch (error) {
     console.error('Erreur lors de la suppression du commentaire:', error)
@@ -389,7 +389,7 @@ const deleteComment = async (commentId) => {
 
 const saveSettings = async () => {
   try {
-    await api.updateCommentSettings(settings.value)
+    await commentsService.updateSettings(settings.value)
     alert('Paramètres mis à jour avec succès')
   } catch (error) {
     console.error('Erreur lors de la mise à jour des paramètres:', error)

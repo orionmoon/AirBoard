@@ -87,6 +87,8 @@ func (s *GamificationService) CheckAchievements(tx *gorm.DB, userID uint, trigge
 		return s.checkCitizenAchievement(tx, userID)
 	case "poll_create":
 		return s.checkPollsterAchievement(tx, userID)
+	case "comment_create":
+		return s.checkCommentatorAchievement(tx, userID)
 	}
 
 	return nil
@@ -157,6 +159,16 @@ func (s *GamificationService) checkPollsterAchievement(tx *gorm.DB, userID uint)
 
 	if count >= 3 {
 		return s.UnlockAchievement(tx, userID, "pollster")
+	}
+	return nil
+}
+
+func (s *GamificationService) checkCommentatorAchievement(tx *gorm.DB, userID uint) error {
+	var count int64
+	tx.Model(&models.Comment{}).Where("user_id = ?", userID).Count(&count)
+
+	if count >= 5 {
+		return s.UnlockAchievement(tx, userID, "commentator")
 	}
 	return nil
 }
@@ -293,6 +305,15 @@ func (s *GamificationService) SeedAchievements() error {
 			Color:       "#F59E0B",
 			XPReward:    150,
 			Category:    "contributor",
+		},
+		{
+			Code:        "commentator",
+			Name:        "Commentateur",
+			Description: "Publiez 5 commentaires",
+			Icon:        "mdi:comment-text-multiple",
+			Color:       "#6366F1",
+			XPReward:    80,
+			Category:    "user",
 		},
 	}
 

@@ -177,7 +177,7 @@ func main() {
 	homeHandler := handlers.NewHomeHandler(db)
 	versionHandler := handlers.NewVersionHandler()
 	emailHandler := handlers.NewEmailHandler(db, cfg)
-	commentHandler := handlers.NewCommentHandler(db)
+	commentHandler := handlers.NewCommentHandler(db, gamificationService)
 	feedbackHandler := handlers.NewFeedbackHandler(db)
 	notificationHandler := handlers.NewNotificationHandler(db)
 	pollsHandler := handlers.NewPollsHandler(db, gamificationService)

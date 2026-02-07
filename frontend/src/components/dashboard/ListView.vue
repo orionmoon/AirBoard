@@ -57,11 +57,20 @@
                 <h3 class="font-semibold text-xs text-gray-900 dark:text-white truncate">
                   {{ app.name }}
                 </h3>
-                <Icon
-                  v-if="app.open_in_new_tab"
-                  icon="mdi:open-in-new"
-                  class="h-3 w-3 text-gray-400 dark:text-gray-500 flex-shrink-0"
-                />
+                <div class="flex items-center">
+                  <button 
+                    @click.stop="emit('show-details', app)"
+                    class="p-0.5 rounded-full hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors mr-1"
+                    :title="$t('common.details')"
+                  >
+                   <Icon icon="mdi:information-outline" class="h-3.5 w-3.5 text-blue-500" />
+                  </button>
+                  <Icon
+                    v-if="app.open_in_new_tab"
+                    icon="mdi:open-in-new"
+                    class="h-3 w-3 text-gray-400 dark:text-gray-500 flex-shrink-0"
+                  />
+                </div>
               </div>
               <p v-if="app.description" class="text-xs text-gray-600 dark:text-gray-400 truncate mt-0.5">
                 {{ app.description }}

@@ -115,7 +115,7 @@
 
         <!-- Description -->
         <p v-if="event.description" class="text-xl text-gray-600 dark:text-gray-400 mb-6">
-          {{ stripHtml(event.description) }}
+          {{ getSummary(event.description) }}
         </p>
 
         <!-- Event Details Card -->
@@ -315,6 +315,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { Icon } from '@iconify/vue'
 import { useEventsStore } from '@/stores/events'
 import { useAuthStore } from '@/stores/auth'
@@ -326,6 +327,8 @@ const route = useRoute()
 const router = useRouter()
 const eventsStore = useEventsStore()
 const authStore = useAuthStore()
+
+const { t } = useI18n()
 
 // Computed
 const event = computed(() => eventsStore.currentEvent)
@@ -431,10 +434,10 @@ const formatRelativeTime = (dateString) => {
   const now = new Date()
   const diffInSeconds = Math.floor((now - date) / 1000)
   
-  if (diffInSeconds < 60) return $t('time.justNow')
-  if (diffInSeconds < 3600) return $t('time.minutesAgo', { count: Math.floor(diffInSeconds / 60) })
-  if (diffInSeconds < 86400) return $t('time.hoursAgo', { count: Math.floor(diffInSeconds / 3600) })
-  if (diffInSeconds < 2592000) return $t('time.daysAgo', { count: Math.floor(diffInSeconds / 86400) })
+  if (diffInSeconds < 60) return t('time.justNow')
+  if (diffInSeconds < 3600) return t('time.minutesAgo', { count: Math.floor(diffInSeconds / 60) })
+  if (diffInSeconds < 86400) return t('time.hoursAgo', { count: Math.floor(diffInSeconds / 3600) })
+  if (diffInSeconds < 2592000) return t('time.daysAgo', { count: Math.floor(diffInSeconds / 86400) })
   
   return date.toLocaleDateString('fr-FR', { year: 'numeric', month: 'short', day: 'numeric' })
 }
@@ -446,44 +449,66 @@ const formatRecurrenceRule = (recurrenceRule) => {
     const interval = rule.interval || 1
     
     const typeLabels = {
-      daily: $t('events.recurrence.daily'),
-      weekly: $t('events.recurrence.weekly'),
-      monthly: $t('events.recurrence.monthly'),
-      yearly: $t('events.recurrence.yearly')
+      daily: t('events.recurrence.daily'),
+      weekly: t('events.recurrence.weekly'),
+      monthly: t('events.recurrence.monthly'),
+      yearly: t('events.recurrence.yearly')
     }
     
     const typeLabel = typeLabels[type] || type
-    const intervalLabel = interval > 1 ? $t('events.recurrence.every', { interval }) : ''
+    const intervalLabel = interval > 1 ? t('events.recurrence.every', { interval }) : ''
     
     return `${intervalLabel} ${typeLabel}`.trim()
   } catch {
-    return $t('events.recurrence.custom')
+    return t('events.recurrence.custom')
   }
 }
 
-const stripHtml = (html) => {
+const getSummary = (content) => {
+  if (!content) return ''
+  
+  try {
+    // Try to parse as JSON (Tiptap format)
+    const json = typeof content === 'string' ? JSON.parse(content) : content
+    if (json && json.type === 'doc') {
+      let text = ''
+      const traverse = (node) => {
+        if (node.type === 'text') {
+          text += node.text
+        }
+        if (node.content) {
+          node.content.forEach(traverse)
+        }
+      }
+      traverse(json)
+      return text
+    }
+  } catch (e) {
+    // Not valid JSON, fall back to HTML stripping
+  }
+
   // Use DOMParser instead of innerHTML for security
   const parser = new DOMParser()
-  const doc = parser.parseFromString(html, 'text/html')
+  const doc = parser.parseFromString(content, 'text/html')
   return doc.body.textContent || doc.body.innerText || ''
 }
 
 const getVisibilityLabel = (targetGroups) => {
   if (!targetGroups || targetGroups.length === 0) {
-    return $t('events.visibility.public')
+    return t('events.visibility.public')
   }
   if (targetGroups.length === 1) {
     return targetGroups[0].name
   }
-  return $t('events.visibility.groupsCount', { count: targetGroups.length })
+  return t('events.visibility.groupsCount', { count: targetGroups.length })
 }
 
 const getGroupsTooltip = (targetGroups) => {
   if (!targetGroups || targetGroups.length === 0) {
-    return $t('events.visibility.tooltip.public')
+    return t('events.visibility.tooltip.public')
   }
   const groupNames = targetGroups.map(g => g.name).join(', ')
-  return $t('events.visibility.tooltip.groups', { groups: groupNames })
+  return t('events.visibility.tooltip.groups', { groups: groupNames })
 }
 
 // Lifecycle

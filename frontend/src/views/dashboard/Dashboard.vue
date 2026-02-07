@@ -301,6 +301,7 @@
           :app-groups="dashboard.app_groups"
           :collapsed-groups="collapsedGroups"
           @toggle-group="toggleGroup"
+          @show-details="openAppDetails"
         />
       </div>
 
@@ -317,9 +318,17 @@
           :app-groups="dashboard.app_groups"
           :collapsed-groups="collapsedGroups"
           @toggle-group="toggleGroup"
+          @show-details="openAppDetails"
         />
       </div>
     </div>
+
+    <!-- Application Details Modal -->
+    <ApplicationDetailModal
+      v-if="showDetailsModal && selectedApp"
+      :app="selectedApp"
+      @close="showDetailsModal = false"
+    />
   </div>
 </template>
 
@@ -334,6 +343,7 @@ import ViewModeSelector from '@/components/dashboard/ViewModeSelector.vue'
 import TableView from '@/components/dashboard/TableView.vue'
 import ListView from '@/components/dashboard/ListView.vue'
 import GridView from '@/components/dashboard/GridView.vue'
+import ApplicationDetailModal from '@/components/dashboard/ApplicationDetailModal.vue'
 
 const authStore = useAuthStore()
 const appStore = useAppStore()
@@ -345,6 +355,15 @@ const appSettings = ref({})
 const isLoading = ref(false)
 const collapsedGroups = ref(new Set())
 const activeAnnouncements = ref([])
+
+// Application Details Modal
+const showDetailsModal = ref(false)
+const selectedApp = ref(null)
+
+const openAppDetails = (app) => {
+  selectedApp.value = app
+  showDetailsModal.value = true
+}
 
 // View mode state
 const viewMode = ref(localStorage.getItem('dashboard-view-mode') || 'grid')
