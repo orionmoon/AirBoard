@@ -297,8 +297,8 @@ func (h *HomeHandler) getTodayEvents(userID uint, role string) ([]models.Event, 
 
 	var events []models.Event
 
-	query := h.db.Where("is_published = ? AND start_date >= ? AND start_date < ?",
-		true, startOfDay, endOfDay).
+	query := h.db.Where("is_published = ? AND ((start_date >= ? AND start_date < ?) OR (start_date < ? AND end_date >= ?))",
+		true, startOfDay, endOfDay, startOfDay, startOfDay).
 		Preload("Author").
 		Preload("Category").
 		Order("start_date ASC")

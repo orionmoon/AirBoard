@@ -92,38 +92,61 @@
       <!-- Calendar content based on view mode -->
       <div v-if="currentViewMode === 'month'">
         <!-- Month View -->
-        <div class="grid grid-cols-7 gap-1">
+        <div class="grid grid-cols-7 gap-px bg-gray-200 dark:bg-gray-700 border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
           <div 
             v-for="day in calendarDays" 
             :key="`${day.date.getFullYear()}-${day.date.getMonth()}-${day.date.getDate()}`"
             :class="[
-              'p-2 text-sm border border-gray-200 dark:border-gray-700 min-h-[80px] relative',
-              day.isCurrentMonth ? 'bg-white dark:bg-gray-800' : 'bg-gray-50 dark:bg-gray-900',
-              day.isToday ? 'bg-blue-50 dark:bg-blue-900' : ''
+              'min-h-[100px] p-1 bg-white dark:bg-gray-800 relative transition-colors hover:bg-gray-50 dark:hover:bg-gray-750',
+              !day.isCurrentMonth && 'bg-gray-50/50 dark:bg-gray-900/50 text-gray-400',
+              day.isToday && 'bg-blue-50/30 dark:bg-blue-900/10'
             ]"
+
           >
-            <div class="font-medium mb-1">{{ day.date.getDate() }}</div>
-            <div v-if="day.events.length > 0" class="space-y-1">
-              <div 
-                v-for="event in day.events.slice(0, 2)" 
-                :key="event.id"
+            <!-- Date Header -->
+            <div class="flex justify-between items-start mb-1">
+              <span 
                 :class="[
-                  'text-xs p-1 rounded truncate cursor-pointer group relative',
-                  event.color ? '' : 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
+                  'text-xs font-medium w-6 h-6 flex items-center justify-center rounded-full',
+                  day.isToday 
+                    ? 'bg-blue-600 text-white' 
+                    : 'text-gray-700 dark:text-gray-300'
                 ]"
-                :style="event.color ? { backgroundColor: event.color + '20', color: event.color } : {}"
+              >
+                {{ day.date.getDate() }}
+              </span>
+            </div>
+
+            <!-- Events List -->
+            <div class="space-y-0.5">
+              <div 
+                v-for="event in day.events.slice(0, 4)" 
+                :key="event.id"
                 @click="showEvent(event)"
+                :class="[
+                  'text-[10px] px-1.5 py-0.5 truncate cursor-pointer hover:opacity-80 transition-opacity select-none',
+                  // Styling for continuous feel
+                  getDateString(new Date(event.start_date)) === getDateString(day.date) ? 'rounded-l-md' : 'rounded-l-none -ml-1 pl-2',
+                  event.end_date && getDateString(new Date(event.end_date)) === getDateString(day.date) ? 'rounded-r-md' : 'rounded-r-none -mr-1 pr-2',
+                  
+                  // Default colors if not specified
+                  !event.color && 'bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-100',
+                  
+                  // Event type/priority indicator (optional border)
+                  'border-l-2'
+                ]"
+                :style="{
+                  backgroundColor: event.color ? event.color + '20' : undefined,
+                  color: event.color ? event.color : undefined,
+                  borderLeftColor: event.color || '#3B82F6'
+                }"
               >
                 {{ event.title }}
-                <!-- View Icon Overlay -->
-                <Icon 
-                  icon="mdi:eye" 
-                  class="absolute top-0 right-0 h-3 w-3 p-0.5 bg-white dark:bg-gray-800 rounded-full opacity-0 group-hover:opacity-100 transition-opacity transform translate-x-1 -translate-y-1 hover:text-primary-600"
-                  @click.stop="viewEvent(event)"
-                />
               </div>
-              <div v-if="day.events.length > 2" class="text-xs text-gray-500">
-                +{{ day.events.length - 2 }} {{ $t('calendar.andMore', { count: day.events.length - 2 }) }}
+              
+              <!-- More events indicator -->
+              <div v-if="day.events.length > 4" class="text-[10px] text-gray-400 pl-1">
+                +{{ day.events.length - 4 }} autres
               </div>
             </div>
           </div>
@@ -231,7 +254,7 @@
     />
 
     <!-- Empty state for calendar view -->
-    <div v-if="!isLoading && calendarEvents.length === 0 && recurringInstances.length === 0" class="mt-6 text-center py-12">
+    <div v-if="!isLoading && events.length === 0" class="mt-6 text-center py-12">
       <Icon icon="mdi:calendar-outline" class="h-16 w-16 mx-auto text-gray-400 mb-4" />
       <p class="text-gray-600 dark:text-gray-400 text-lg">
         {{ $t('calendar.noEvents') }}
@@ -253,6 +276,14 @@ import { useEventsStore } from '@/stores/events'
 import { useAuthStore } from '@/stores/auth'
 import EventDetailModal from './EventDetailModal.vue'
 
+
+const props = defineProps({
+  events: {
+    type: Array,
+    default: () => []
+  }
+})
+
 const router = useRouter()
 const { t } = useI18n()
 const eventsStore = useEventsStore()
@@ -266,8 +297,6 @@ const daysOfWeek = ref(['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'])
 
 // Computed
 const isLoading = computed(() => eventsStore.isLoadingCalendar)
-const calendarEvents = computed(() => eventsStore.calendarEvents)
-const recurringInstances = computed(() => eventsStore.recurringInstances)
 
 // Current period display
 const currentPeriodDisplay = computed(() => {
@@ -427,7 +456,7 @@ const navigatePrevious = () => {
       currentDate.value = new Date(currentDate.value.getFullYear(), currentDate.value.getMonth() - 1, 1)
       break
   }
-  loadEventsForCurrentPeriod()
+  // No need to load events, handled by parent
 }
 
 const navigateNext = () => {
@@ -445,12 +474,11 @@ const navigateNext = () => {
       currentDate.value = new Date(currentDate.value.getFullYear(), currentDate.value.getMonth() + 1, 1)
       break
   }
-  loadEventsForCurrentPeriod()
+  // No need to load events, handled by parent
 }
 
 const goToToday = () => {
   currentDate.value = new Date()
-  loadEventsForCurrentPeriod()
 }
 
 // Date and time formatting
@@ -504,7 +532,14 @@ const getDateString = (date) => {
 
 const getEventsForDate = (date) => {
   const targetDateStr = getDateString(date)
-  const allEvents = [...calendarEvents.value, ...recurringInstances.value]
+  const targetDate = new Date(targetDateStr)
+  
+  // Create end of target date for comparison
+  const targetDateEnd = new Date(targetDate)
+  targetDateEnd.setHours(23, 59, 59, 999)
+
+  // Use props.events instead of store
+  const allEvents = props.events || []
 
   const matchingEvents = allEvents.filter(event => {
     // Validate event has required properties
@@ -513,17 +548,29 @@ const getEventsForDate = (date) => {
     }
 
     try {
-      const eventDate = new Date(event.start_date)
-
+      const startDate = new Date(event.start_date)
       // Check if the date is valid
-      if (isNaN(eventDate.getTime())) {
+      if (isNaN(startDate.getTime())) {
         return false
       }
-
-      const eventDateStr = getDateString(eventDate)
-      const matches = eventDateStr === targetDateStr && (event.is_published !== false)
-
-      return matches
+      
+      const startDateStr = getDateString(startDate)
+      
+      // If it's a single day event
+      if (!event.end_date || getDateString(new Date(event.end_date)) === startDateStr) {
+         return startDateStr === targetDateStr && (event.is_published !== false)
+      }
+      
+      // Multi-day event
+      const endDate = new Date(event.end_date)
+      const startDateOnly = new Date(getDateString(startDate))
+      const endDateOnly = new Date(getDateString(endDate))
+      
+      // Check if target date is within range [start, end]
+      // We compare just dates (ignoring time for the range check relative to days)
+      const isWithinRange = targetDate >= startDateOnly && targetDate <= endDateOnly
+      
+      return isWithinRange && (event.is_published !== false)
     } catch (error) {
       return false
     }
@@ -548,43 +595,6 @@ const changeMonth = (direction) => {
     goToToday()
   } else {
     currentDate.value = new Date(currentDate.value.getFullYear(), currentDate.value.getMonth() + direction, 1)
-    loadEventsForCurrentPeriod()
-  }
-}
-
-const loadEventsForCurrentPeriod = async () => {
-  try {
-    let startDate, endDate
-    
-    switch (currentViewMode.value) {
-      case 'day':
-        startDate = currentDate.value.toISOString().split('T')[0]
-        endDate = currentDate.value.toISOString().split('T')[0]
-        break
-      case 'week':
-        const weekStart = getWeekStart(currentDate.value)
-        const weekEnd = getWeekEnd(currentDate.value)
-        startDate = weekStart.toISOString().split('T')[0]
-        endDate = weekEnd.toISOString().split('T')[0]
-        break
-      case 'month':
-      default:
-        const year = currentDate.value.getFullYear()
-        const month = currentDate.value.getMonth()
-        startDate = new Date(year, month, 1).toISOString().split('T')[0]
-        endDate = new Date(year, month + 1, 0).toISOString().split('T')[0]
-        break
-    }
-    
-    // Also load events from 2025 onwards to include demo data
-    const demoStartDate = '2025-01-01'
-    const demoEndDate = '2025-12-31'
-    
-    console.log('📅 Loading calendar events for period:', demoStartDate, 'to', demoEndDate)
-    
-    await eventsStore.fetchCalendarEvents(demoStartDate, demoEndDate)
-  } catch (error) {
-    console.error('Error loading events:', error)
   }
 }
 
@@ -593,20 +603,19 @@ const showEvent = (event) => {
 }
 
 const handleEventUpdated = (updatedEvent) => {
-  // Refresh events when event is updated
-  loadEventsForCurrentPeriod()
+  // Emit update to parent to reload data
+  // emit('updated') - not defined yet but events store updates should propagate
 }
 
 // Expose methods
 defineExpose({
-  refreshCalendar: loadEventsForCurrentPeriod,
+  refreshCalendar: () => {}, // No-op, parent controls data
   setViewMode
 })
 
 // Lifecycle
 onMounted(() => {
   initializeTranslations()
-  loadEventsForCurrentPeriod()
 })
 
 // Add cleanup to prevent lifecycle warnings

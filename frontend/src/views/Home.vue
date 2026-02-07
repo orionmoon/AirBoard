@@ -74,12 +74,12 @@
         <!-- Column 3 (25% width) - Time-based Information -->
         <div class="column-3">
           <!-- Today's Events -->
-          <div v-if="homeData.today_events?.length > 0" class="bento-item" data-aos="fade-up" data-aos-delay="100">
+          <div v-if="homeData.today_events" class="bento-item" data-aos="fade-up" data-aos-delay="100">
             <TodayEventsWidget :events="homeData.today_events" />
           </div>
 
           <!-- Upcoming Events (limit to 3) -->
-          <div v-if="homeData.upcoming_events?.length > 0" class="bento-item" data-aos="fade-up" data-aos-delay="150">
+          <div v-if="homeData.upcoming_events" class="bento-item" data-aos="fade-up" data-aos-delay="150">
             <UpcomingEventsWidget :events="homeData.upcoming_events.slice(0, 3)" />
           </div>
 
