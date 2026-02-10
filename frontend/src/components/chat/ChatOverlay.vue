@@ -1,15 +1,16 @@
 <template>
   <div class="chat-overlay">
     <!-- Minimized Bubble -->
-    <div 
-      v-if="!chatStore.isOpen" 
+    <div
+      v-if="!chatStore.isOpen"
       class="chat-bubble shadow-lg hover:shadow-xl transition-all cursor-pointer bg-blue-600 text-white rounded-full w-14 h-14 flex items-center justify-center relative z-50"
+      :class="{ 'animate-pulse-slow': totalUnread > 0 }"
       @click="chatStore.toggleChat()"
     >
       <Icon icon="mdi:chat" class="text-2xl" />
-      <span 
-        v-if="totalUnread > 0" 
-        class="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center border-2 border-white"
+      <span
+        v-if="totalUnread > 0"
+        class="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center border-2 border-white animate-bounce"
       >
         {{ totalUnread > 99 ? '99+' : totalUnread }}
       </span>
@@ -383,11 +384,17 @@ const toggleMenu = () => {
   showMenu.value = !showMenu.value;
 };
 
-const playNotificationSound = () => {
+const playNotificationSound = async () => {
   if (!notificationsEnabled.value) return;
-  
+
   try {
     const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+    // Resume audio context if suspended (browser autoplay policy)
+    if (audioCtx.state === 'suspended') {
+      await audioCtx.resume();
+    }
+
     const oscillator = audioCtx.createOscillator();
     const gainNode = audioCtx.createGain();
 
@@ -396,20 +403,20 @@ const playNotificationSound = () => {
 
     oscillator.type = 'sine';
     oscillator.frequency.setValueAtTime(880, audioCtx.currentTime); // A5
-    
+
     gainNode.gain.setValueAtTime(0, audioCtx.currentTime);
-    gainNode.gain.linearRampToValueAtTime(0.1, audioCtx.currentTime + 0.01);
-    gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.5);
+    gainNode.gain.linearRampToValueAtTime(0.15, audioCtx.currentTime + 0.01);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.4);
 
     oscillator.start();
-    oscillator.stop(audioCtx.currentTime + 0.5);
-    
+    oscillator.stop(audioCtx.currentTime + 0.4);
+
     // Auto-close context after sound finishes to save resources
     setTimeout(() => {
       audioCtx.close();
-    }, 600);
+    }, 500);
   } catch (e) {
-    console.warn('Audio context blocked or not supported', e);
+    console.warn('Audio notification error:', e);
   }
 };
 
@@ -473,11 +480,14 @@ onMounted(() => {
     window.addEventListener('resize', () => {
         isMobile.value = window.innerWidth < 768;
     });
-    
+
     // Auto-connect if logged in
     if(authStore.token) {
         chatStore.connect();
     }
+
+    // Initialize previous unread count to prevent sound on first load
+    previousTotalUnread.value = totalUnread.value;
 });
 
 watch(currentMessages, () => {
@@ -489,16 +499,17 @@ watch(activeConversation, (newVal) => {
 });
 
 // Watch for unread messages to play sound
-watch(() => chatStore.unreadCounts, (newUnreads, oldUnreads) => {
-  if (!oldUnreads) return;
-  
-  for (const key in newUnreads) {
-    if (newUnreads[key] > (oldUnreads[key] || 0)) {
-      playNotificationSound();
-      break;
-    }
+const previousTotalUnread = ref(0);
+watch(totalUnread, (newTotal, oldTotal) => {
+  // Play sound if unread count increased
+  // Sound will play if:
+  // 1. Chat is closed, OR
+  // 2. Chat is open but the new message is from a different conversation
+  if (newTotal > oldTotal && newTotal > 0) {
+    playNotificationSound();
   }
-}, { deep: true });
+  previousTotalUnread.value = newTotal;
+});
 
 const toggleMinimize = () => {
    // Currently clicking header closes chat, logic matches "toggleChat" which toggles isOpen.
@@ -542,5 +553,21 @@ const confirmClearHistory = () => {
     .chat-window {
         width: 600px; /* Wider on desktop for sidebar + chat */
     }
+}
+
+/* Animation pour la bulle avec messages non lus */
+@keyframes pulse-slow {
+  0%, 100% {
+    opacity: 1;
+    box-shadow: 0 10px 15px -3px rgba(59, 130, 246, 0.5), 0 4px 6px -2px rgba(59, 130, 246, 0.5);
+  }
+  50% {
+    opacity: 0.85;
+    box-shadow: 0 20px 25px -5px rgba(59, 130, 246, 0.7), 0 10px 10px -5px rgba(59, 130, 246, 0.7);
+  }
+}
+
+.animate-pulse-slow {
+  animation: pulse-slow 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 </style>

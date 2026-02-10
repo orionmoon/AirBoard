@@ -196,14 +196,21 @@ export const useChatStore = defineStore('chat', {
         }
         
         this.messages[key].push(payload);
-        
-        // Increment unread if chat not open or not active convo
-        if (!this.isOpen || !this.activeConversation || 
-           (this.activeConversation.type === 'group' && `group_${this.activeConversation.id}` !== key) ||
-           (this.activeConversation.type === 'user' && `user_${this.activeConversation.id}` !== key)) {
-          
-           if (!this.unreadCounts[key]) this.unreadCounts[key] = 0;
-           this.unreadCounts[key]++;
+
+        // Determine the active conversation key
+        const activeKey = this.activeConversation
+          ? `${this.activeConversation.type}_${this.activeConversation.id}`
+          : null;
+
+        // Increment unread if:
+        // 1. Message is not from me (don't count our own messages as unread), AND
+        // 2. (Chat is not open, OR no active conversation, OR message from different conversation)
+        const isMyMessage = payload.sender_id === myId;
+        const shouldIncrement = !isMyMessage && (!this.isOpen || !activeKey || activeKey !== key);
+
+        if (shouldIncrement) {
+          if (!this.unreadCounts[key]) this.unreadCounts[key] = 0;
+          this.unreadCounts[key]++;
         }
       } else if (msg.type === 'user_status') {
         // Handle online/offline status update
