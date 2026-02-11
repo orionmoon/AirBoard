@@ -747,25 +747,25 @@ func (h *NewsHandler) IncrementView(c *gin.Context) {
 	}
 	userID := c.GetUint("user_id")
 
-	// 1. Incrémenter le compteur global
-	if err := h.db.Model(&models.News{}).Where("id = ?", id).
-		UpdateColumn("view_count", gorm.Expr("view_count + ?", 1)).Error; err != nil {
-		log.Printf("[ERROR IncrementView] Failed to increment view for news %d: %v", id, err)
-	}
-
-	// 2. Vérifier si l'utilisateur a déjà lu cet article pour l'XP
+	// Vérifier si l'utilisateur a déjà lu cet article
 	var exists int64
 	h.db.Model(&models.NewsRead{}).Where("news_id = ? AND user_id = ?", id, userID).Count(&exists)
 
 	if exists == 0 {
-		// Enregistrer la lecture
+		// 1. Incrémenter le compteur de vues UNIQUEMENT pour les lectures uniques
+		if err := h.db.Model(&models.News{}).Where("id = ?", id).
+			UpdateColumn("view_count", gorm.Expr("view_count + ?", 1)).Error; err != nil {
+			log.Printf("[ERROR IncrementView] Failed to increment view for news %d: %v", id, err)
+		}
+
+		// 2. Enregistrer la lecture
 		read := models.NewsRead{
 			NewsID: uint(id),
 			UserID: userID,
 			ReadAt: time.Now(),
 		}
 		if err := h.db.Create(&read).Error; err == nil {
-			// Attribuer de l'XP (20 points par lecture unique)
+			// 3. Attribuer de l'XP (20 points par lecture unique)
 			go h.gamificationService.AwardXP(userID, 20, "news_read", fmt.Sprintf("{\"news_id\": %d}", id))
 		}
 	}
