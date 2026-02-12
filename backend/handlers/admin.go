@@ -966,11 +966,80 @@ func (h *AdminHandler) PermanentlyDeleteUser(c *gin.Context) {
 		return
 	}
 
-	// Supprimer définitivement les associations
-	h.db.Unscoped().Model(&user).Association("Groups").Clear()
+	// Supprimer définitivement dans une transaction
+	if err := h.db.Transaction(func(tx *gorm.DB) error {
+		// 1. Supprimer les associations many-to-many
+		txUnscoped := tx.Unscoped()
+		if err := txUnscoped.Model(&user).Association("Groups").Clear(); err != nil {
+			return err
+		}
+		if err := txUnscoped.Model(&user).Association("Favorites").Clear(); err != nil {
+			return err
+		}
+		if err := txUnscoped.Model(&user).Association("AdminOfGroups").Clear(); err != nil {
+			return err
+		}
 
-	// Supprimer définitivement
-	if err := h.db.Unscoped().Delete(&user).Error; err != nil {
+		// 2. Supprimer les enregistrements liés à l'utilisateur
+		if err := tx.Where("user_id = ?", user.ID).Delete(&models.NewsReaction{}).Error; err != nil {
+			return err
+		}
+		if err := tx.Where("user_id = ?", user.ID).Delete(&models.NewsRead{}).Error; err != nil {
+			return err
+		}
+		if err := tx.Where("user_id = ?", user.ID).Delete(&models.ApplicationClick{}).Error; err != nil {
+			return err
+		}
+		if err := tx.Unscoped().Where("user_id = ?", user.ID).Delete(&models.Notification{}).Error; err != nil {
+			return err
+		}
+		if err := tx.Unscoped().Where("sender_id = ? OR recipient_id = ?", user.ID, user.ID).Delete(&models.ChatMessage{}).Error; err != nil {
+			return err
+		}
+		if err := tx.Unscoped().Where("user_id = ?", user.ID).Delete(&models.Comment{}).Error; err != nil {
+			return err
+		}
+		if err := tx.Where("user_id = ?", user.ID).Delete(&models.Feedback{}).Error; err != nil {
+			return err
+		}
+		if err := tx.Where("user_id = ?", user.ID).Delete(&models.PollVote{}).Error; err != nil {
+			return err
+		}
+		if err := tx.Where("user_id = ?", user.ID).Delete(&models.GamificationProfile{}).Error; err != nil {
+			return err
+		}
+		if err := tx.Where("user_id = ?", user.ID).Delete(&models.UserAchievement{}).Error; err != nil {
+			return err
+		}
+		if err := tx.Where("user_id = ?", user.ID).Delete(&models.XPTransaction{}).Error; err != nil {
+			return err
+		}
+
+		// 3. Nullifier les références d'auteur sur le contenu (préserver les articles/sondages)
+		if err := tx.Model(&models.News{}).Where("author_id = ?", user.ID).Update("author_id", nil).Error; err != nil {
+			return err
+		}
+		if err := tx.Model(&models.Poll{}).Where("author_id = ?", user.ID).Update("author_id", nil).Error; err != nil {
+			return err
+		}
+		if err := tx.Unscoped().Where("author_id = ?", user.ID).Delete(&models.Event{}).Error; err != nil {
+			return err
+		}
+		if err := tx.Model(&models.Media{}).Where("uploaded_by = ?", user.ID).Update("uploaded_by", nil).Error; err != nil {
+			return err
+		}
+		// Nullifier moderated_by dans les commentaires
+		if err := tx.Model(&models.Comment{}).Where("moderated_by = ?", user.ID).Update("moderated_by", nil).Error; err != nil {
+			return err
+		}
+
+		// 4. Supprimer définitivement l'utilisateur
+		if err := txUnscoped.Delete(&user).Error; err != nil {
+			return err
+		}
+
+		return nil
+	}); err != nil {
 		c.JSON(http.StatusInternalServerError, models.ErrorResponse{
 			Error:   "Internal Server Error",
 			Message: "Erreur lors de la suppression définitive",
