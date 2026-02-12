@@ -96,6 +96,7 @@ func (h *GamificationHandler) GetLeaderboard(c *gin.Context) {
 	h.db.Table("gamification_profiles").
 		Select("gamification_profiles.user_id, users.username, users.first_name, users.last_name, gamification_profiles.xp, gamification_profiles.level").
 		Joins("JOIN users ON users.id = gamification_profiles.user_id").
+		Where("users.is_active = ? AND users.deleted_at IS NULL", true).
 		Order("gamification_profiles.xp DESC").
 		Limit(10).
 		Scan(&leaderboard)
