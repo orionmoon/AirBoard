@@ -776,8 +776,8 @@ func createInitialData(db *gorm.DB, cfg *config.Config) (err error) {
 		}
 		log.Println("✅ Utilisateur demo créé: user@airboard.com / user123")
 	} else {
-		// Récupérer l'utilisateur existant
-		if err = tx.Where("username = ?", "user").First(&normalUser).Error; err != nil {
+		// Récupérer l'utilisateur existant (y compris les soft-deleted)
+		if err = tx.Unscoped().Where("username = ?", "user").First(&normalUser).Error; err != nil {
 			tx.Rollback()
 			return fmt.Errorf("failed to retrieve existing user: %w", err)
 		}
